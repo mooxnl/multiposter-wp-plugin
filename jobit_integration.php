@@ -587,10 +587,8 @@ function update_expired_jobs() {
 
 
 function jobit_import_jobs_action_ajax_handler() {
-    $ff = jobs_feach_callback();
+    jobs_feach_callback();
 
-    var_dump($ff);
-    exit;
     $response = array(
         'status' => 'success',
         'message' => 'AJAX request received successfully!'
@@ -738,7 +736,7 @@ function jobit_change_per_page_action_ajax_handler() {
                         <h4 class="h3"><a href="<?php echo esc_url($link); ?>"><?php echo esc_html($job_title); ?></a></h4>
                     </div>
                     <div class="intro">
-                        <p><?php echo esc_html($short_description); ?></p>
+                        <p><?php echo strip_tags($short_description); ?></p>
                     </div>
                 </div>
                 <div class="right">
@@ -900,15 +898,9 @@ function custom_single_post_content($content) {
                         </div>
                         <div class="contact-buttons margin">
                             <div class="contact-button no-margin">
-                                <a class="btn btn-primary" href="tel:'.$office_phone.'">
-                                    <i class="fa fa-phone contact-icon"></i>
-                                </a>
                                 <a class="button-text" href="tel:'.$office_phone.'">'.$office_phone.'</a>
                             </div>
                             <div class="contact-button no-margin">
-                                <a class="btn btn-primary" href="mailto:waalwijk@actiefwerkt.nl">
-                                    <i class="fa fa-envelope-o contact-icon"></i>
-                                </a>
                                 <a class="button-text" href="mailto:'.$email.'" >Stuur ons een mail</a>
                             </div>
                         </div>
@@ -951,7 +943,7 @@ function add_job_posting_schema() {
         $career_level = get_post_meta($job_id, 'career_level', true);
         $date = get_post_meta($job_id, 'date', true);
         $employment = get_post_meta($job_id, 'employment', true);
-        $short_description = get_post_meta($job_id, 'short_description', true);
+        $short_description = strip_tags(get_post_meta($job_id, 'short_description', true));
         // Prepare data
         $schema_data = [
             "@context" => "https://schema.org/",
