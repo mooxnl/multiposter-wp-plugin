@@ -255,6 +255,56 @@ function job_details_meta_box_callback($post) {
 }
 
 
+function save_job_details_meta_box_data($post_id) {
+    // Check if nonce is set
+    if (!isset($_POST['job_details_nonce']) || !wp_verify_nonce($_POST['job_details_nonce'], 'save_job_details')) {
+        return $post_id;
+    }
+
+    // Check if the current user has permission to edit the post
+    if (!current_user_can('edit_post', $post_id)) {
+        return $post_id;
+    }
+
+    // Prevent auto-save from overwriting data
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        return $post_id;
+    }
+
+    // Fields to save
+    $fields = [
+        'short_description',
+        'requirements',
+        'offer',
+        'city',
+        'number',
+        'date',
+        'education',
+        'employment',
+        'career_level',
+        'hours',
+        'contract',
+        'salary',
+        'email',
+        'contact',
+        'office_city',
+        'office_email',
+        'office_phone',
+    ];
+
+    // Loop through the fields and save their values
+    foreach ($fields as $field) {
+        if (isset($_POST[$field])) {
+            $value = sanitize_text_field($_POST[$field]); // Sanitize the value
+            update_post_meta($post_id, $field, $value);   // Save the meta field
+        } else {
+            delete_post_meta($post_id, $field);          // If field is not set, remove it
+        }
+    }
+}
+add_action('save_post', 'save_job_details_meta_box_data');
+
+
 add_action('admin_menu', 'vacatures_settings_page');
 function vacatures_settings_page() {
     add_submenu_page(
@@ -401,6 +451,7 @@ function jobit_custom_cron_schedule($schedules) {
 
 add_action('jobit_custom_cron_event', 'jobs_feach_callback');
 function jobs_feach_callback() {
+    flush_rewrite_rules();
     $api_key = get_option('api_key');
     if ($api_key) {
         $current_page = get_option('jobit_current_page', 1); // Default to page 1 if not set
