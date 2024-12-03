@@ -428,7 +428,7 @@ function jobs_feach_callback() {
         }
 
         $last_one = $vacancies["meta"]["last_page"] ?? 1;
-        if ($current_page > $last_page) {
+        if ($current_page > $last_one) {
             update_option('jobit_current_page', $current_page + 1); // Move to the next page
         } else {
             update_option('jobit_current_page', 1); // Reset to page 1 if last page is reached
