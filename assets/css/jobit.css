@@ -321,7 +321,6 @@ span.page-numbers.current {
 .job-single-wrapper {
     display: flex;
     gap: 20px; /* Adjust spacing between columns as needed */
-    flex-wrap: wrap; /* Allows wrapping on smaller screens */
   }
   
   .custom-job-content {
@@ -336,6 +335,7 @@ span.page-numbers.current {
   @media (max-width: 768px) {
     .job-single-wrapper {
       flex-direction: column; /* Stack columns vertically on smaller screens */
+      flex-wrap: wrap; /* Allows wrapping on smaller screens */
     }
   
     .custom-job-content,
