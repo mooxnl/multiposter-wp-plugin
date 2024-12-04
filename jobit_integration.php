@@ -89,6 +89,10 @@ function create_jobs_Jobit_cpt() {
 		'capability_type' => 'post',
         'menu_icon' => 'dashicons-rss',
         'show_in_rest' => true,
+        'capabilities' => array(
+            'create_posts' => 'do_not_allow', // Removes support for the "Add New" function, including Super Admin's
+        ),
+        'map_meta_cap' => true,
 	);
 	register_post_type('vacatures', $args);
 }
@@ -743,25 +747,28 @@ function jobit_change_per_page_action_ajax_handler() {
         'post_status'          => 'publish',
     );
     
+    $tax_queries = array();
     if (!empty($selected_cities)) {
-        $args['tax_query'] = array(
-            array(
-                'taxonomy' => 'cities', // Replace 'city' with the actual city taxonomy slug
-                'field'    => 'term_id',
-                'terms'    => $selected_cities,
-            ),
+        $tax_queries[] = array(
+            'taxonomy' => 'cities', // Replace 'cities' with the actual city taxonomy slug
+            'field'    => 'term_id',
+            'terms'    => $selected_cities,
         );
     }
+    
     if (!empty($selected_postions)) {
-        $args['tax_query'] = array(
-            array(
-                'taxonomy' => 'position',
-                'field'    => 'term_id',
-                'terms'    => $selected_postions,
-            ),
+        $tax_queries[] = array(
+            'taxonomy' => 'position',
+            'field'    => 'term_id',
+            'terms'    => $selected_postions,
         );
     }
-
+    if (!empty($tax_queries)) {
+        $args['tax_query'] = array(
+            'relation' => 'AND', // Use 'AND' to require both conditions or 'OR' for either
+            ...$tax_queries,
+        );
+    }
 
     if (!empty($keyword)) {
         $args['s'] = $keyword;
