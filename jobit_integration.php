@@ -633,10 +633,7 @@ function update_expired_jobs() {
                     $post_id = get_the_ID();
                     $jobit_id = get_post_meta($post_id, 'jobit_id', true);
                     if (!in_array($jobit_id, $jobs_id)) {
-                        wp_update_post(array(
-                            'ID' => $post_id,
-                            'post_status' => 'draft',
-                        ));
+                        wp_trash_post($post_id);
                     }
                 }
                 wp_reset_postdata();
@@ -745,6 +742,7 @@ function jobit_change_per_page_action_ajax_handler() {
         'paged'          => $paged,
         'post_status'          => 'publish',
     );
+    
     if (!empty($selected_cities)) {
         $args['tax_query'] = array(
             array(
