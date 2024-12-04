@@ -31,7 +31,7 @@ get_header(); ?>
                                     <?php
                                         $terms = get_terms(array(
                                             'taxonomy' => 'position',
-                                            'hide_empty' => false, // Set to true to hide empty terms
+                                            'hide_empty' => true, // Set to true to hide empty terms
                                         ));
                                         echo '<ul class="select_position">';
                                         foreach ($terms as $term) {
@@ -44,13 +44,12 @@ get_header(); ?>
                                 </div>
 
 
-
                                 <div class="form-group type-keyword">
                                     <span class="anchor anchor--inputfield">Plaats</span>
                                     <?php
                                         $terms = get_terms(array(
                                             'taxonomy' => 'cities',
-                                            'hide_empty' => false, // Set to true to hide empty terms
+                                            'hide_empty' => true, // Set to true to hide empty terms
                                         ));
                                         echo '<ul class="select_city">';
                                         foreach ($terms as $term) {
