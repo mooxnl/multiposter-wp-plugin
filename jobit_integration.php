@@ -455,7 +455,7 @@ add_action('jobit_custom_cron_event', 'jobs_feach_callback');
 
 function jobs_feach_list_api($current_page) {
     $api_key = get_option('api_key');
-    $url = "https://app.jobit.nl/api/vacancies?limit=100&page={$current_page}";
+    $url = "https://app.jobit.nl/api/vacancies/channel/62?limit=100&page={$current_page}";
     $args = array(
         'headers' => array(
             'Authorization' => 'Bearer ' . $api_key,
@@ -603,7 +603,7 @@ add_action('plugins_loaded', 'jobit_load_textdomain');
 function update_expired_jobs() {
     $api_key = get_option('api_key');
     if($api_key){
-        $url = 'https://app.jobit.nl/api/vacancies?limit=9999';
+        $url = 'https://app.jobit.nl/api/vacancies/channel/62?limit=9999';
 
         $args = array(
             'headers' => array(
