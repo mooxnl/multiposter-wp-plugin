@@ -450,33 +450,42 @@ function jobit_custom_cron_schedule($schedules) {
 }
 
 add_action('jobit_custom_cron_event', 'jobs_feach_callback');
+
+
+
+function jobs_feach_list_api($current_page) {
+    $api_key = get_option('api_key');
+    $url = "https://app.jobit.nl/api/vacancies?limit=100&page={$current_page}";
+    $args = array(
+        'headers' => array(
+            'Authorization' => 'Bearer ' . $api_key,
+            'Content-Type' => 'application/json',
+        ),
+        'method' => 'GET',
+    );
+    $response = wp_remote_get($url, $args);
+    $response_body = wp_remote_retrieve_body($response);
+    $vacancies = json_decode($response_body, true);
+    return $vacancies;
+}
+
 function jobs_feach_callback() {
     flush_rewrite_rules();
     $api_key = get_option('api_key');
     if ($api_key) {
         $current_page = get_option('jobit_current_page', 1); // Default to page 1 if not set
-        $url = "https://app.jobit.nl/api/vacancies?limit=100&page={$current_page}";
+        $vacancies = jobs_feach_list_api($current_page);
+        if (empty($vacancies['data']['vacancies'])) {
+            update_option('jobit_current_page', 1);
+            $vacancies = jobs_feach_list_api(1);
+        } 
+        $jobs_list = $vacancies['data']['vacancies'];
 
-        $args = array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-            ),
-            'method' => 'GET',
-        );
-        $response = wp_remote_get($url, $args);
-        $response_body = wp_remote_retrieve_body($response);
-        $vacancies = json_decode($response_body, true);
-
-        if (isset($vacancies['data']['vacancies']) && !empty($vacancies['data']['vacancies'])) {
-            $jobs_list = $vacancies['data']['vacancies'];
+        if ($jobs_list) {
             foreach ($jobs_list as $job) {
                 insert_job_function($job); // Insert each job
             }
-        }
-        else{
-            update_option('jobit_current_page', 1);
-        }
+        } 
 
         $last_one = $vacancies["meta"]["last_page"] ?? 1;
         if ($current_page > $last_one) {
@@ -636,20 +645,17 @@ function update_expired_jobs() {
 }
 
 
-
 function jobit_import_jobs_action_ajax_handler() {
-    jobs_feach_callback();
-
+    $res = jobs_feach_callback();
     $response = array(
         'status' => 'success',
-        'message' => 'AJAX request received successfully!'
+        'message' => 'AJAX request received successfully!',
+        'response' => $res
     );
     wp_send_json($response);
     wp_die();
 }
 add_action('wp_ajax_jobit_import_jobs_action', 'jobit_import_jobs_action_ajax_handler');
-
-
 
 
 
