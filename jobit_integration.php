@@ -743,6 +743,7 @@ function jobit_change_per_page_action_ajax_handler() {
         'post_type'      => 'vacatures',
         'posts_per_page' => $posts_per_page,
         'paged'          => $paged,
+        'post_status'          => 'publish',
     );
     if (!empty($selected_cities)) {
         $args['tax_query'] = array(
