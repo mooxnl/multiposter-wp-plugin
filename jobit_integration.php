@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Multiposter
  * Version:           1.0
- * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen Wordpress website.
+ * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
  * Author:            Multiposter
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.txt
  */
@@ -927,20 +927,15 @@ function custom_single_post_content($content) {
 
             $custom_content .= $content; // Original content
             $custom_content .= '</div>';
-
+            $custom_content .= '<div class="custom-job-sidebar">';
 
             if ($show_form) {
-                $custom_content .= '<div class="custom-job-sidebar">';
                 $custom_content .= '
-                        <div class="vacancy-contact__wrapper">
+                    <div class="vacancy-contact__wrapper">
                         <div class="vacancy-contact__header"><h3 class="office-title">Solliciteren</h3></div>
-    
-    
                         <div class="vacancy-contact__content">
-    
                         
                             ' . $script . '
-    
     
                         </div>
                     </div>';
