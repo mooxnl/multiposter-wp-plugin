@@ -489,11 +489,11 @@ function jobs_feach_callback() {
 
         $last_one = $vacancies["meta"]["last_page"] ?? 1;
         if ($current_page > $last_one) {
-            update_option('jobit_current_page', $current_page + 1); // Move to the next page
+            update_option('jobit_current_page', $current_page + 1);
         } else {
-            update_option('jobit_current_page', 1); // Reset to page 1 if last page is reached
-            update_expired_jobs(); // Update expired jobs only after the last page
+            update_option('jobit_current_page', 1);
         }
+        update_expired_jobs();
     }
 }
 
@@ -593,6 +593,7 @@ function insert_job_function($job) {
 
     }
 }
+
 
 function jobit_load_textdomain() {
     load_plugin_textdomain('jobit-integration', false, dirname(plugin_basename(__FILE__)) . '/languages');
