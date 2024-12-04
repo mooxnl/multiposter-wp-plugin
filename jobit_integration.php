@@ -842,7 +842,7 @@ function jobit_change_per_page_action_ajax_handler() {
         ));
     } else {
         echo json_encode(array(
-            'html' => '<p>No job vacancies found.</p>',
+            'html' => '<p>Er zijn geen vacatures gevonden.</p>',
             'pagination' => ''
         ));
     }
