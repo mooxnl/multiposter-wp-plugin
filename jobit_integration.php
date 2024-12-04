@@ -868,12 +868,12 @@ function custom_single_post_content($content) {
         $contact = get_post_meta($job_id, 'contact', true);
         $office_phone = get_post_meta($job_id, 'office_phone', true);
         $org_id =  get_post_meta($job_id, 'jobit_id', true);
+        $vacancyNumber =  get_post_meta($job_id, 'number', true);
 
         $token = get_option('api_key');
         $show_form = get_option('show_form');
 
-        $vacancyNumber = $org_id;
-        $script = '<script src="//app.jobit.nl/vendor/wire-elements/wire-extender.js" data-livewire-asset-uri="//app.jobit.nl/livewire/livewire.js"></script>';
+        $script = '<script src="//app.jobit.nl/vendor/wire-elements/wire-extender.js" data-livewire-asset-uri="//app.jobit.nl/livewire/livewire.min.js"></script>';
         $script .= '<livewire data-component="websites.livewire.frontend.embedded-application-form" ';
         $script .= 'data-params=\'{"token":"' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '","vacancyNumber":"' . htmlspecialchars($vacancyNumber, ENT_QUOTES, 'UTF-8') . '"}\'>';
         $script .= 'Laden...</livewire>';
