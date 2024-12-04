@@ -23,9 +23,6 @@ get_header(); ?>
                                     <input type="text" name="keyword" class="jobtitle form-control selected-filter fontsize-variant" placeholder="Zoeken..." value="">
                                 </div>
 
-
-
-
                                 <div class="form-group type-keyword">
                                     <span class="anchor anchor--inputfield">Functie</span>
                                     <?php

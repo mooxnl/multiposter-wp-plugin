@@ -91,11 +91,17 @@ jQuery(document).ready(function($) {
         loadJobs();
     });
 
-    $('.jobtitle').on('keyup', function() {
+    $('.jobtitle').on('keyup', function(event) {
         clearTimeout(typingTimer);
         typingTimer = setTimeout(function() {
             loadJobs();
         }, typingDelay);
+    });
+
+    $('#jobs-filter').on('keydown', function(event) {
+        if (event.target.classList.contains('jobtitle') && (event.key === "Enter" || event.keyCode === 13)) {
+            event.preventDefault(); // Stop form submission when Enter is pressed inside .jobtitle
+        }
     });
 
 });
