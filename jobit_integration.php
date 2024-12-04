@@ -89,6 +89,10 @@ function create_jobs_Jobit_cpt() {
 		'capability_type' => 'post',
         'menu_icon' => 'dashicons-rss',
         'show_in_rest' => true,
+        'capabilities' => array(
+            'create_posts' => 'do_not_allow', // Removes support for the "Add New" function, including Super Admin's
+        ),
+        'map_meta_cap' => true,
 	);
 	register_post_type('vacatures', $args);
 }
