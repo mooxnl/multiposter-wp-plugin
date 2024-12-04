@@ -281,7 +281,7 @@ span.page-numbers.current {
     color: #fff;
 }
 .vacancy-contact__wrapper {
-    background: #d9d9d9;
+    background-color: rgba(165, 165, 168, .1);
     border-radius: 8px;
     margin-bottom: 15px;
 }
@@ -374,10 +374,6 @@ span.page-numbers.current {
 }
 .personal-text a {
     text-decoration: underline;
-}
-.vacancy-contact__wrapper {
-    background: #003770;
-    border-radius: 8px;
 }
 .contact-button .btn {
     position: relative;

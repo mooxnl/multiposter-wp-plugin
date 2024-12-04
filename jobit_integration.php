@@ -28,7 +28,7 @@ function my_plugin_enqueue_scripts() {
         'Jobit-style-css',
         plugins_url('assets/css/jobit.css', __FILE__), 
         array(), 
-        '1.0.1'
+        '1.0.2'
     );
 }
 // Hook into WordPress
@@ -40,7 +40,7 @@ function jobit_enqueue_scripts_scripts() {
         'jobit-style-css',
         plugins_url('assets/css/jobit.css', __FILE__), 
         array(), 
-        '1.0.1'
+        '1.0.2'
     );
     wp_enqueue_script(
         'font-awesome', // Unique handle for this stylesheet
