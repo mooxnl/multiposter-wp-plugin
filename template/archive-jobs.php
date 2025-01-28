@@ -114,6 +114,40 @@ get_header(); ?>
   </div>
 </div>
 
+<div class="vacancies__vacancy">
+    <div class="left">
+        <div class="title">
+            <h4 class="h3"><a href="<?php echo esc_url($link); ?>"><?php echo esc_html($job_title); ?></a></h4>
+        </div>
+        <div class="intro">
+            <p><?php echo strip_tags($short_description); ?></p>
+        </div>
+    </div>
+    <div class="right">
+        <?php if (!empty($city)): ?>
+            <div class="location">
+                <b><i class="fa fa-map-marker"></i><?php echo esc_html($city); ?></b>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($hours)): ?>
+            <div class="type-of-time">
+                <b><i class="fa fa-clock-o"></i><?php echo esc_html($hours); ?></b>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($salary)): ?>
+            <div class="salary_indication">
+                <b><i class="fa fa-money"></i><?php echo esc_html($salary); ?></b>
+            </div>
+        <?php endif; ?>
+        
+        <div>
+            <a href="<?php echo esc_url($link); ?>" class="button blue2ghost vacancy-btn">Bekijken</a>
+        </div>
+    </div>
+</div>
+
 <?php
 // Include WordPress footer
 get_footer();

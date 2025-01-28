@@ -42,12 +42,15 @@ function jobit_enqueue_scripts_scripts() {
         array(), 
         '1.0.2'
     );
-    wp_enqueue_script(
-        'font-awesome', // Unique handle for this stylesheet
-        'https://kit.fontawesome.com/278986c12c.js', 
-        array('jquery'), 
-        '6.6.0' // Version number
+    
+    // Replace CDN with local Font Awesome files
+    wp_enqueue_style(
+        'font-awesome',
+        plugins_url('assets/fonts/css/all.min.css', __FILE__),
+        array(),
+        '6.6.0'
     );
+    
     wp_register_script(
         'jobit-script-front-js',
         plugins_url('assets/js/jobit-front.js', __FILE__), 
@@ -804,15 +807,24 @@ function jobit_change_per_page_action_ajax_handler() {
                     </div>
                 </div>
                 <div class="right">
-                    <div class="location">
-                        <b><i class="fa fa-map-marker"></i><?php echo esc_html($city); ?></b>
-                    </div>
-                    <div class="type-of-time">
-                        <b><i class="fa fa-clock-o"></i><?php echo esc_html($hours); ?></b>
-                    </div>
-                    <div class="salary_indication">
-                        <b><i class="fa fa-money"></i><?php echo esc_html($salary); ?></b>
-                    </div>
+                    <?php if (!empty($city)): ?>
+                        <div class="location">
+                            <b><i class="fa fa-map-marker"></i><?php echo esc_html($city); ?></b>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($hours)): ?>
+                        <div class="type-of-time">
+                            <b><i class="fa fa-clock-o"></i><?php echo esc_html($hours); ?></b>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($salary)): ?>
+                        <div class="salary_indication">
+                            <b><i class="fa fa-money"></i><?php echo esc_html($salary); ?></b>
+                        </div>
+                    <?php endif; ?>
+                    
                     <div>
                         <a href="<?php echo esc_url($link); ?>" class="button blue2ghost vacancy-btn">Bekijken</a>
                     </div>
@@ -892,44 +904,69 @@ function custom_single_post_content($content) {
                 $custom_content .= '<h3 class="title job__title--detail">'.get_the_title($job_id).'</h3>';
                 $custom_content .= '
                     <div class="specifications">
-                        <div class="specifications__wrapper">
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="title">
-                                        <svg class="sitemap-icon specifications__item--svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
-                                            <path d="M608 352h-32v-97.59c0-16.77-13.62-30.41-30.41-30.41H336v-64h48c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32H256c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h48v64H94.41C77.62 224 64 237.64 64 254.41V352H32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32H96v-96h208v96h-32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32h-32v-96h208v96h-32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32zm-480 32v96H32v-96h96zm240 0v96h-96v-96h96zM256 128V32h128v96H256zm352 352h-96v-96h96v96z"></path>
-                                        </svg>
-                                        '.$employment.'</div>
-                                </div>
-                            </div>
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="location"><i class="fa fa-map-marker"></i>'.$city.'</div>
-                                </div>
-                            </div>
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="type-of-time"><i class="fa fa-clock-o"></i>'.$hours.'</div>
-                                </div>
-                            </div>
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="education"><i class="fa fa-graduation-cap"></i>'.$career_level.'</div>
-                                </div>
-                            </div>
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="salary-indication"><i class="fa fa-money"></i>'.$salary.'</div>
-                                </div>
-                            </div>
-                            <div class="specifications__item">
-                                <div class="job-detail">
-                                    <div class="publicationdate"><i class="fa fa-calendar"></i>'.$date.'</div>
-                                </div>
-                            </div>
+                        <div class="specifications__wrapper">';
+                            
+                            if (!empty($employment)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="title">
+                                            <svg class="sitemap-icon specifications__item--svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
+                                                <path d="M608 352h-32v-97.59c0-16.77-13.62-30.41-30.41-30.41H336v-64h48c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32H256c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h48v64H94.41C77.62 224 64 237.64 64 254.41V352H32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32H96v-96h208v96h-32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32h-32v-96h208v96h-32c-17.67 0-32 14.33-32 32v96c0 17.67 14.33 32 32 32h96c17.67 0 32-14.33 32-32v-96c0-17.67-14.33-32-32-32zm-480 32v96H32v-96h96zm240 0v96h-96v-96h96zM256 128V32h128v96H256zm352 352h-96v-96h96v96z"></path>
+                                            </svg>
+                                            '.$employment.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                            if (!empty($city)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="location"><i class="fa fa-map-marker"></i>'.$city.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                            if (!empty($hours)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="type-of-time"><i class="fa fa-clock-o"></i>'.$hours.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                            if (!empty($career_level)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="education"><i class="fa fa-graduation-cap"></i>'.$career_level.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                            if (!empty($salary)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="salary-indication"><i class="fa fa-money"></i>'.$salary.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                            if (!empty($date)) {
+                                $custom_content .= '
+                                <div class="specifications__item">
+                                    <div class="job-detail">
+                                        <div class="publicationdate"><i class="fa fa-calendar"></i>'.$date.'</div>
+                                    </div>
+                                </div>';
+                            }
+
+                        $custom_content .= '
                         </div>
-                    </div>
-                ';
+                    </div>';
 
             $custom_content .= $content; // Original content
             $custom_content .= '</div>';
@@ -1003,33 +1040,75 @@ function add_job_posting_schema() {
         $date = get_post_meta($job_id, 'date', true);
         $employment = get_post_meta($job_id, 'employment', true);
         $short_description = strip_tags(get_post_meta($job_id, 'short_description', true));
+        $office_city = get_post_meta($job_id, 'office_city', true);
+        $office_email = get_post_meta($job_id, 'office_email', true);
+        $office_phone = get_post_meta($job_id, 'office_phone', true);
+        
+        // Format the date to ISO 8601
+        $valid_through = date('c', strtotime('+30 days')); // Set validity to 30 days from now
+        $date_posted = !empty($date) ? date('c', strtotime($date)) : date('c');
+
+        // Parse salary if available
+        $salary_data = [
+            "@type" => "MonetaryAmount",
+            "currency" => "EUR",
+            "value" => [
+                "@type" => "QuantitativeValue",
+                "value" => $salary,
+                "unitText" => "MONTH"
+            ]
+        ];
+
         // Prepare data
         $schema_data = [
             "@context" => "https://schema.org/",
             "@type" => "JobPosting",
             "title" => $title,
             "description" => $short_description,
-            "datePosted" => $date,
+            "datePosted" => $date_posted,
+            "validThrough" => $valid_through,
             "employmentType" => $employment,
+            "hiringOrganization" => [
+                "@type" => "Organization",
+                "name" => get_bloginfo('name'),
+                "sameAs" => home_url(),
+                "logo" => get_site_icon_url()
+            ],
             "jobLocation" => [
                 "@type" => "Place",
                 "address" => [
                     "@type" => "PostalAddress",
-                    "addressLocality" => $city
+                    "addressLocality" => $city,
+                    "addressCountry" => "NL"
                 ]
-            ],
-            "baseSalary" => [
-                "@type" => "MonetaryAmount",
-                "currency" => "EUR",
-                "value" => [
-                    "@type" => "QuantitativeValue",
-                    "value" => $salary,
-                    "unitText" => "MONTH"
-                ]
-            ],
-            "workHours" => $hours,
-            "experienceRequirements" => $career_level
+            ]
         ];
+
+        // Add salary if available
+        if (!empty($salary)) {
+            $schema_data["baseSalary"] = $salary_data;
+        }
+
+        // Add work hours if available
+        if (!empty($hours)) {
+            $schema_data["workHours"] = $hours;
+        }
+
+        // Add qualifications if available
+        if (!empty($career_level)) {
+            $schema_data["qualifications"] = $career_level;
+        }
+
+        // Add application contact info
+        if (!empty($office_email) || !empty($office_phone)) {
+            $schema_data["applicationContact"] = [
+                "@type" => "ContactPoint",
+                "email" => $office_email,
+                "telephone" => $office_phone,
+                "contactType" => "hiring"
+            ];
+        }
+
         ?>
         <script type="application/ld+json">
             <?php echo wp_json_encode($schema_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT); ?>
