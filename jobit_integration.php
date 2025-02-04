@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Multiposter
- * Version:           1.0
+ * Version:           1.1
  * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
  * Author:            Multiposter
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.txt
