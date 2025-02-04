@@ -956,10 +956,12 @@ function custom_single_post_content($content) {
                             }
 
                             if (!empty($date)) {
+                                $dutchDateFormat = date('d-m-Y', strtotime($date));
+                                
                                 $custom_content .= '
                                 <div class="specifications__item">
                                     <div class="job-detail">
-                                        <div class="publicationdate"><i class="fa fa-calendar"></i>'.$date.'</div>
+                                        <div class="publicationdate"><i class="fa fa-calendar"></i>'.$dutchDateFormat.'</div>
                                     </div>
                                 </div>';
                             }
