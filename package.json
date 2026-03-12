@@ -1,0 +1,12 @@
+{
+  "name": "multiposter-wp-plugin",
+  "version": "2.0.0",
+  "description": "Multiposter WordPress Plugin - Gutenberg Blocks",
+  "scripts": {
+    "build": "wp-scripts build src/blocks/vacancy-archive.js src/blocks/latest-vacancies.js src/blocks/single-vacancy.js src/blocks/vacancy-search.js src/blocks/application-form.js src/blocks/vacancy-images.js src/blocks/share-buttons.js src/blocks/related-vacancies.js src/blocks/registration-form.js --output-path=assets/js/blocks",
+    "start": "wp-scripts start src/blocks/vacancy-archive.js src/blocks/latest-vacancies.js src/blocks/single-vacancy.js src/blocks/vacancy-search.js src/blocks/application-form.js src/blocks/vacancy-images.js src/blocks/share-buttons.js src/blocks/related-vacancies.js src/blocks/registration-form.js --output-path=assets/js/blocks"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "^27.0.0"
+  }
+}

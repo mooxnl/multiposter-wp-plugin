@@ -1,153 +1,138 @@
 <?php
-// Include WordPress header
-get_header(); ?>
-<div class="container jobit-container">
-  <div class="row">
-   
-    <div class="vacancies__wrapper" style="min-height: 2087px;">
-                
-    
-        <div class="pull-left col-xs-12 col-sm-4 col-lg-3">
-            <div class="aside">
-                <div class="vacancies__filter" style="margin-top: 0px; z-index: 999; top: -65px;">
-                    <div class="container">
-                    <div class="col-xs-12 col-md-10 col-md-offset-1">
-                        <div class="row">
-                        <div class="col-xs-12">
-                            <div class="vacancies__filter__wrapper">
-                            <form class="filter form-count auto-form-vacancies replace-state" id="jobs-filter" action="vacatures" method="get">
-                                <input name="action" type="hidden" value="filter">
-                                <div class="inputs">
-                                <div class="form-group type-keyword">
-                                    <span class="anchor anchor--inputfield">Zoeken</span>
-                                    <input type="text" name="keyword" class="jobtitle form-control selected-filter fontsize-variant" placeholder="Zoeken..." value="">
-                                </div>
+get_header();
 
-                                <div class="form-group type-keyword">
-                                    <span class="anchor anchor--inputfield">Functie</span>
-                                    <?php
-                                        $terms = get_terms(array(
-                                            'taxonomy' => 'position',
-                                            'hide_empty' => true, // Set to true to hide empty terms
-                                        ));
-                                        echo '<ul class="select_position">';
-                                        foreach ($terms as $term) {
-                                            echo '<li>';
-                                                echo '<input type="checkbox" class="selected_position" name="selected_position[]"   value="'.$term->term_id.'" id="city'.$term->term_id.'"><label for="city'.$term->term_id.'">'.$term->name.'</label>';
-                                            echo '</li>';
-                                        }
-                                        echo '</ul>';
-                                    ?>
-                                </div>
+// Filter config
+$default_filters = array(
+    array('id' => 'keyword', 'label' => __('Zoeken', 'multiposter'), 'enabled' => 1),
+    array('id' => 'position', 'label' => __('Functie', 'multiposter'), 'enabled' => 1),
+    array('id' => 'city', 'label' => __('Plaats', 'multiposter'), 'enabled' => 1),
+    array('id' => 'salary', 'label' => __('Salaris', 'multiposter'), 'enabled' => 1),
+);
+$filters_config = get_option('multiposter_filters_config', $default_filters);
+if (!is_array($filters_config)) {
+    $filters_config = $default_filters;
+}
 
+$default_per_page = get_option('multiposter_default_per_page', 10);
+$show_per_page_selector = get_option('multiposter_show_per_page_selector', 1);
+$per_page_options = array_map('trim', explode(',', get_option('multiposter_per_page_options', '10,25,50,100')));
+$favorites_enabled = get_option('multiposter_favorites_enabled', 1);
+$columns = intval(get_option('multiposter_archive_columns', 1));
+?>
 
-                                <div class="form-group type-keyword">
-                                    <span class="anchor anchor--inputfield">Plaats</span>
-                                    <?php
-                                        $terms = get_terms(array(
-                                            'taxonomy' => 'cities',
-                                            'hide_empty' => true, // Set to true to hide empty terms
-                                        ));
-                                        echo '<ul class="select_city">';
-                                        foreach ($terms as $term) {
-                                            echo '<li>';
-                                                echo '<input type="checkbox" class="selected_city" name="selected_city[]"   value="'.$term->term_id.'" id="city'.$term->term_id.'"><label for="city'.$term->term_id.'">'.$term->name.'</label>';
-                                            echo '</li>';
-                                        }
-                                        echo '</ul>';
-                                    ?>
-                                </div>
+<div class="multiposter-archive">
 
+    <aside class="multiposter-archive__filters">
+        <button type="button" class="multiposter-filter-toggle" aria-expanded="false" aria-controls="multiposter-filter-form">
+            <?php esc_html_e('Filters', 'multiposter'); ?>
+            <svg class="multiposter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>
+        </button>
+        <form id="multiposter-filter-form">
+            <?php foreach ($filters_config as $filter):
+                if (empty($filter['enabled'])) continue;
 
+                switch ($filter['id']):
+                    case 'keyword': ?>
+                        <div class="multiposter-filter-group">
+                            <label for="multiposter-keyword"><?php esc_html_e('Zoeken', 'multiposter'); ?></label>
+                            <input type="text" id="multiposter-keyword" name="keyword" placeholder="<?php esc_attr_e('Zoeken...', 'multiposter'); ?>">
+                        </div>
+                    <?php break;
 
+                    case 'position': ?>
+                        <fieldset class="multiposter-filter-group">
+                            <legend><?php esc_html_e('Functie', 'multiposter'); ?></legend>
+                            <?php
+                            $terms = get_terms(array('taxonomy' => 'position', 'hide_empty' => true));
+                            if (!is_wp_error($terms) && !empty($terms)): ?>
+                                <ul class="multiposter-checkbox-list">
+                                    <?php foreach ($terms as $term): ?>
+                                        <li>
+                                            <label>
+                                                <input type="checkbox" name="position[]" value="<?php echo esc_attr($term->term_id); ?>">
+                                                <?php echo esc_html($term->name); ?>
+                                            </label>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </fieldset>
+                    <?php break;
 
+                    case 'city': ?>
+                        <fieldset class="multiposter-filter-group">
+                            <legend><?php esc_html_e('Plaats', 'multiposter'); ?></legend>
+                            <?php
+                            $terms = get_terms(array('taxonomy' => 'cities', 'hide_empty' => true));
+                            if (!is_wp_error($terms) && !empty($terms)): ?>
+                                <ul class="multiposter-checkbox-list">
+                                    <?php foreach ($terms as $term): ?>
+                                        <li>
+                                            <label>
+                                                <input type="checkbox" name="city[]" value="<?php echo esc_attr($term->term_id); ?>">
+                                                <?php echo esc_html($term->name); ?>
+                                            </label>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </fieldset>
+                    <?php break;
 
-                                </div>
-                                
-                            </form>
+                    case 'salary': ?>
+                        <div class="multiposter-filter-group">
+                            <label><?php esc_html_e('Salaris', 'multiposter'); ?></label>
+                            <div class="multiposter-salary-range">
+                                <input type="number" name="salary_min" placeholder="<?php esc_attr_e('Min', 'multiposter'); ?>">
+                                <input type="number" name="salary_max" placeholder="<?php esc_attr_e('Max', 'multiposter'); ?>">
                             </div>
-                            <div id="jobs-filters-used"></div>
                         </div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
+                    <?php break;
+
+                endswitch;
+            endforeach; ?>
+
+            <?php if ($favorites_enabled): ?>
+            <div class="multiposter-filter-group multiposter-favorites-filter">
+                <label>
+                    <input type="checkbox" id="multiposter-show-favorites">
+                    <span class="multiposter-heart-icon">&#9829;</span> <?php esc_html_e('Alleen favorieten', 'multiposter'); ?>
+                </label>
             </div>
+            <?php endif; ?>
+        </form>
+    </aside>
+
+    <main class="multiposter-archive__results">
+        <div class="multiposter-loader" hidden>
+            <svg class="multiposter-spinner" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-dashoffset="10" stroke-linecap="round"/>
+            </svg>
         </div>
 
-
-        <div class="pull-right col-xs-12 col-sm-8 col-lg-9">
-            <div id="jobs-results">
-
-                <div class="perpage">
-                    <select>
-                        <option value="10" selected>10 per pagina</option>
-                        <option value="20">25 per pagina</option>
-                        <option value="50">50 per pagina</option>
-                        <option value="100">100 per pagina</option>
-                    </select>
-                </div>
-
-
-                <div class="loader__wrapper">
-                    <div class="loader">
-                    <i class="fa fa-spin fa-spinner"></i>
-                    </div>
-                </div>
-
-
-
-                <div class="vacancies"></div>
-                <div class="pagination"></div>
-                
-                    
-                </div>
-                
+        <div class="multiposter-vacancies multiposter-columns-<?php echo esc_attr($columns); ?>">
+            <?php echo multiposter_render_archive_page_ssr($default_per_page, $favorites_enabled); ?>
         </div>
 
+        <nav class="multiposter-pagination">
+            <?php echo multiposter_render_archive_pagination_ssr($default_per_page); ?>
+        </nav>
 
-
-
-
-    </div>
-
-  </div>
-</div>
-
-<div class="vacancies__vacancy">
-    <div class="left">
-        <div class="title">
-            <h4 class="h3"><a href="<?php echo esc_url($link); ?>"><?php echo esc_html($job_title); ?></a></h4>
+        <?php if ($show_per_page_selector): ?>
+        <div class="multiposter-per-page">
+            <select id="multiposter-per-page">
+                <?php foreach ($per_page_options as $opt):
+                    $opt = intval($opt);
+                    if ($opt <= 0) continue;
+                ?>
+                    <option value="<?php echo $opt; ?>" <?php selected($opt, $default_per_page); ?>><?php echo $opt; ?> <?php esc_html_e('per pagina', 'multiposter'); ?></option>
+                <?php endforeach; ?>
+            </select>
         </div>
-        <div class="intro">
-            <p><?php echo strip_tags($short_description); ?></p>
-        </div>
-    </div>
-    <div class="right">
-        <?php if (!empty($city)): ?>
-            <div class="location">
-                <b><i class="fa fa-map-marker"></i><?php echo esc_html($city); ?></b>
-            </div>
         <?php endif; ?>
-        
-        <?php if (!empty($hours)): ?>
-            <div class="type-of-time">
-                <b><i class="fa fa-clock-o"></i><?php echo esc_html($hours); ?></b>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (!empty($salary)): ?>
-            <div class="salary_indication">
-                <b><i class="fa fa-money"></i><?php echo esc_html($salary); ?></b>
-            </div>
-        <?php endif; ?>
-        
-        <div>
-            <a href="<?php echo esc_url($link); ?>" class="button blue2ghost vacancy-btn">Bekijken</a>
-        </div>
-    </div>
+    </main>
+
 </div>
 
 <?php
-// Include WordPress footer
 get_footer();

@@ -1,0 +1,308 @@
+# Dutch translation for Multiposter
+# Copyright (C) 2024 Multiposter
+msgid ""
+msgstr ""
+"Project-Id-Version: Multiposter 2.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: Multiposter\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Bekijken"
+msgstr "Bekijken"
+
+msgid "Zoeken"
+msgstr "Zoeken"
+
+msgid "Zoeken..."
+msgstr "Zoeken..."
+
+msgid "Functie"
+msgstr "Functie"
+
+msgid "Plaats"
+msgstr "Plaats"
+
+msgid "Salaris"
+msgstr "Salaris"
+
+msgid "per pagina"
+msgstr "per pagina"
+
+msgid "Er zijn geen vacatures gevonden."
+msgstr "Er zijn geen vacatures gevonden."
+
+msgid "Solliciteren"
+msgstr "Solliciteren"
+
+msgid "Vragen over deze vacature?"
+msgstr "Vragen over deze vacature?"
+
+msgid "Stuur ons een mail"
+msgstr "Stuur ons een mail"
+
+msgid "Vacatures nu ophalen"
+msgstr "Vacatures nu ophalen"
+
+msgid "Multiposter instellingen"
+msgstr "Multiposter instellingen"
+
+msgid "API-sleutel"
+msgstr "API-sleutel"
+
+msgid "Vacatures verversen"
+msgstr "Vacatures verversen"
+
+msgid "Toon sollicitatieformulier bij vacatures"
+msgstr "Toon sollicitatieformulier bij vacatures"
+
+msgid "Instellingen opslaan"
+msgstr "Instellingen opslaan"
+
+msgid "Archive pagina shortcode"
+msgstr "Archive pagina shortcode"
+
+msgid "Single pagina shortcode"
+msgstr "Single pagina shortcode"
+
+msgid "Iedere 15 minuten"
+msgstr "Iedere 15 minuten"
+
+msgid "Iedere 30 minuten"
+msgstr "Iedere 30 minuten"
+
+msgid "Iedere 45 minuten"
+msgstr "Iedere 45 minuten"
+
+msgid "Ieder uur"
+msgstr "Ieder uur"
+
+msgid "Iedere 4 uur"
+msgstr "Iedere 4 uur"
+
+msgid "Iedere 8 uur"
+msgstr "Iedere 8 uur"
+
+msgid "Iedere 24 uur"
+msgstr "Iedere 24 uur"
+
+msgid "&laquo; Vorige"
+msgstr "&laquo; Vorige"
+
+msgid "Volgende &raquo;"
+msgstr "Volgende &raquo;"
+
+msgid "Voornaam"
+msgstr "Voornaam"
+
+msgid "Achternaam"
+msgstr "Achternaam"
+
+msgid "E-mail"
+msgstr "E-mail"
+
+msgid "Telefoon"
+msgstr "Telefoon"
+
+msgid "Motivatie"
+msgstr "Motivatie"
+
+msgid "CV uploaden"
+msgstr "CV uploaden"
+
+msgid "Versturen"
+msgstr "Versturen"
+
+msgid "Versturen..."
+msgstr "Versturen..."
+
+msgid "Delen:"
+msgstr "Delen:"
+
+msgid "Gerelateerde vacatures"
+msgstr "Gerelateerde vacatures"
+
+msgid "Alleen favorieten"
+msgstr "Alleen favorieten"
+
+msgid "Favoriet"
+msgstr "Favoriet"
+
+msgid "Min"
+msgstr "Min"
+
+msgid "Max"
+msgstr "Max"
+
+msgid "Laatste synchronisatie"
+msgstr "Laatste synchronisatie"
+
+msgid "Nog niet gesynchroniseerd"
+msgstr "Nog niet gesynchroniseerd"
+
+msgid "URL Instellingen"
+msgstr "URL Instellingen"
+
+msgid "Vacature URL slug"
+msgstr "Vacature URL slug"
+
+msgid "De URL slug voor vacatures (standaard: vacatures)"
+msgstr "De URL slug voor vacatures (standaard: vacatures)"
+
+msgid "Weergave instellingen"
+msgstr "Weergave instellingen"
+
+msgid "Formuliervelden"
+msgstr "Formuliervelden"
+
+msgid "Verplicht"
+msgstr "Verplicht"
+
+msgid "Voornaam, achternaam en e-mail zijn altijd verplicht."
+msgstr "Voornaam, achternaam en e-mail zijn altijd verplicht."
+
+msgid "E-mail notificatie"
+msgstr "E-mail notificatie"
+
+msgid "Alleen API"
+msgstr "Alleen API"
+
+msgid "Alleen e-mail"
+msgstr "Alleen e-mail"
+
+msgid "API en e-mail"
+msgstr "API en e-mail"
+
+msgid "Notificatie e-mailadres"
+msgstr "Notificatie e-mailadres"
+
+msgid "Leeg = e-mail van vacature contactpersoon"
+msgstr "Leeg = e-mail van vacature contactpersoon"
+
+msgid "Filters"
+msgstr "Filters"
+
+msgid "Sleep om de volgorde te wijzigen, vink aan/uit om filters te tonen/verbergen."
+msgstr "Sleep om de volgorde te wijzigen, vink aan/uit om filters te tonen/verbergen."
+
+msgid "Standaard per pagina"
+msgstr "Standaard per pagina"
+
+msgid "Toon per-pagina selector"
+msgstr "Toon per-pagina selector"
+
+msgid "Per-pagina opties"
+msgstr "Per-pagina opties"
+
+msgid "Komma-gescheiden (bijv. 10,25,50,100)"
+msgstr "Komma-gescheiden (bijv. 10,25,50,100)"
+
+msgid "Favorieten"
+msgstr "Favorieten"
+
+msgid "Toon favorieten functionaliteit"
+msgstr "Toon favorieten functionaliteit"
+
+msgid "Inschakelen"
+msgstr "Inschakelen"
+
+msgid "Aantal:"
+msgstr "Aantal:"
+
+msgid "Deel knoppen"
+msgstr "Deel knoppen"
+
+msgid "Toon deel knoppen op vacature pagina"
+msgstr "Toon deel knoppen op vacature pagina"
+
+msgid "SEO Instellingen"
+msgstr "SEO Instellingen"
+
+msgid "Titel template (vacature)"
+msgstr "Titel template (vacature)"
+
+msgid "Meta beschrijving (vacature)"
+msgstr "Meta beschrijving (vacature)"
+
+msgid "Titel template (archief)"
+msgstr "Titel template (archief)"
+
+msgid "Meta beschrijving (archief)"
+msgstr "Meta beschrijving (archief)"
+
+msgid "Open Graph tags"
+msgstr "Open Graph tags"
+
+msgid "Voeg OG/Twitter meta tags toe aan vacature pagina's"
+msgstr "Voeg OG/Twitter meta tags toe aan vacature pagina's"
+
+msgid "Cache duur (seconden)"
+msgstr "Cache duur (seconden)"
+
+msgid "0 = cache uitgeschakeld"
+msgstr "0 = cache uitgeschakeld"
+
+msgid "Import Log"
+msgstr "Import Log"
+
+msgid "Datum"
+msgstr "Datum"
+
+msgid "Gesynchroniseerd"
+msgstr "Gesynchroniseerd"
+
+msgid "Verwijderd"
+msgstr "Verwijderd"
+
+msgid "Duur (s)"
+msgstr "Duur (s)"
+
+msgid "Fouten"
+msgstr "Fouten"
+
+msgid "Geen logs gevonden."
+msgstr "Geen logs gevonden."
+
+msgid "Uren"
+msgstr "Uren"
+
+msgid "Jobit ID"
+msgstr "Jobit ID"
+
+msgid "Je sollicitatie is succesvol verzonden!"
+msgstr "Je sollicitatie is succesvol verzonden!"
+
+msgid "Vul alle verplichte velden in."
+msgstr "Vul alle verplichte velden in."
+
+msgid "Ongeldig e-mailadres."
+msgstr "Ongeldig e-mailadres."
+
+msgid "Alleen PDF, DOC of DOCX bestanden zijn toegestaan."
+msgstr "Alleen PDF, DOC of DOCX bestanden zijn toegestaan."
+
+msgid "Bestand is te groot (max 5MB)."
+msgstr "Bestand is te groot (max 5MB)."
+
+msgid "Nieuwe sollicitatie: %s"
+msgstr "Nieuwe sollicitatie: %s"
+
+msgid "PDF, DOC of DOCX (max 5MB)"
+msgstr "PDF, DOC of DOCX (max 5MB)"
+
+msgid "Spam gedetecteerd."
+msgstr "Spam gedetecteerd."
+
+msgid "Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw."
+msgstr "Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw."
+
+msgid "Variabelen: {title}, {city}, {company}, {hours}, {salary}, {site_name}, {short_description}"
+msgstr "Variabelen: {title}, {city}, {company}, {hours}, {salary}, {site_name}, {short_description}"
+
+msgid "%d vacatures gesynchroniseerd"
+msgstr "%d vacatures gesynchroniseerd"
