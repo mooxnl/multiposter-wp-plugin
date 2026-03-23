@@ -12,6 +12,33 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Migrate legacy option names
+add_action('admin_init', 'multiposter_migrate_options', 0);
+function multiposter_migrate_options() {
+    $migrations = array(
+        'api_key'       => 'multiposter_api_key',
+        'api_intervals' => 'multiposter_api_intervals',
+        'show_form'     => 'multiposter_show_form',
+    );
+    foreach ($migrations as $old => $new) {
+        $old_value = get_option($old);
+        if ($old_value !== false && get_option($new) === false) {
+            update_option($new, $old_value);
+            delete_option($old);
+        }
+    }
+}
+
+function multiposter_check_rate_limit($action) {
+    $ip = $_SERVER['REMOTE_ADDR'];
+    $ttl = apply_filters('multiposter_rate_limit_ttl', 60, $action);
+    $key = 'multiposter_rl_' . md5($action . '_' . $ip);
+    if (get_transient($key)) {
+        wp_send_json_error(array('message' => __('Te veel verzoeken. Probeer het later opnieuw.', 'multiposter')));
+    }
+    set_transient($key, 1, $ttl);
+}
+
 function multiposter_enqueue_admin_scripts() {
     wp_enqueue_script('jquery-ui-sortable');
     wp_register_script(
@@ -38,14 +65,40 @@ function multiposter_enqueue_admin_scripts() {
 add_action('admin_enqueue_scripts', 'multiposter_enqueue_admin_scripts');
 
 
+function multiposter_should_enqueue() {
+    if (apply_filters('multiposter_force_enqueue', false)) return true;
+    if (is_post_type_archive('vacatures')) return true;
+    if (is_tax('cities') || is_tax('position')) return true;
+    if (is_singular('vacatures')) return true;
+    if (is_singular() || is_page()) {
+        $post = get_post();
+        if ($post) {
+            $blocks = array(
+                'multiposter/vacancy-archive', 'multiposter/latest-vacancies',
+                'multiposter/single-vacancy', 'multiposter/vacancy-search',
+                'multiposter/application-form', 'multiposter/vacancy-images',
+                'multiposter/share-buttons', 'multiposter/related-vacancies',
+                'multiposter/registration-form',
+            );
+            foreach ($blocks as $block) {
+                if (has_block($block, $post)) return true;
+            }
+            if (has_shortcode($post->post_content, 'jobs_archive') || has_shortcode($post->post_content, 'job_single')) return true;
+        }
+    }
+    return false;
+}
+
 function multiposter_enqueue_frontend_scripts() {
+    if (!multiposter_should_enqueue()) return;
+
     wp_enqueue_style(
         'multiposter-style-css',
-        plugins_url('assets/css/multiposter.css', __FILE__), 
-        array(), 
+        plugins_url('assets/css/multiposter.css', __FILE__),
+        array(),
         '2.1.0'
     );
-    
+
     wp_register_script(
         'multiposter-front-js',
         plugins_url('assets/js/multiposter-front.js', __FILE__),
@@ -271,11 +324,15 @@ function multiposter_save_meta_box($post_id) {
         'office_phone',
     ];
 
+    $html_fields = ['short_description', 'requirements', 'offer'];
+
     // Loop through the fields and save their values
     foreach ($fields as $field) {
         if (isset($_POST[$field])) {
-            $value = sanitize_text_field($_POST[$field]); // Sanitize the value
-            update_post_meta($post_id, $field, $value);   // Save the meta field
+            $value = in_array($field, $html_fields, true)
+                ? wp_kses_post($_POST[$field])
+                : sanitize_text_field($_POST[$field]);
+            update_post_meta($post_id, $field, $value);
         } else {
             delete_post_meta($post_id, $field);          // If field is not set, remove it
         }
@@ -377,7 +434,7 @@ function multiposter_settings_callback() {
         'archive'   => __('Archief', 'multiposter'),
         'detail'    => __('Detailpagina', 'multiposter'),
         'form'      => __('Sollicitatieformulier', 'multiposter'),
-        'registration' => __('Registratieformulier', 'multiposter'),
+        'registration' => __('Inschrijfformulier', 'multiposter'),
         'seo'       => __('SEO', 'multiposter'),
         'media'     => __('Afbeeldingen', 'multiposter'),
         'reference' => __('Shortcodes & Blocks', 'multiposter'),
@@ -393,7 +450,7 @@ function multiposter_settings_callback() {
             <?php endforeach; ?>
         </nav>
 
-        <?php if (!get_option('api_key')): ?>
+        <?php if (!get_option('multiposter_api_key')): ?>
             <div class="notice notice-info"><p><?php esc_html_e('Configureer je Multiposter API-token om automatische vacature synchronisatie in te schakelen. Zonder API-token werkt de plugin in standalone modus: je kunt handmatig vacatures aanmaken en sollicitaties worden per e-mail verzonden.', 'multiposter'); ?></p></div>
         <?php endif; ?>
 
@@ -418,16 +475,21 @@ function multiposter_settings_callback() {
                 <tr valign="top">
                     <th scope="row"><?php esc_html_e('API-token', 'multiposter'); ?></th>
                     <td>
-                        <textarea name="api_key" style="width: 100%; min-height: 50px;"><?php echo esc_attr(get_option('api_key')); ?></textarea>
-                        <em><?php echo sprintf(__('Vul hier je API-token in. Deze vind je via Instellingen &gt; Koppelingen &gt; %sAPI tokens%s', 'multiposter'), '<a href="https://app.jobit.nl/settings/api-tokens" target="_blank">', '</a>'); ?></em>
+                        <?php
+                        $stored_key = get_option('multiposter_api_key', '');
+                        $has_key = !empty($stored_key);
+                        $masked_value = $has_key ? str_repeat('•', 12) . substr($stored_key, -4) : '';
+                        ?>
+                        <input type="password" name="multiposter_api_key" id="multiposter-api-key-input" value="<?php echo esc_attr($masked_value); ?>" style="width: 40%; min-width: 350px;" autocomplete="off" />
+                        <em><?php esc_html_e('Vul hier je API-token in. Deze vind je via Instellingen > Koppelingen > API tokens', 'multiposter'); ?></em>
                     </td>
                 </tr>
-                <?php if (get_option('api_key')): ?>
+                <?php if (get_option('multiposter_api_key')): ?>
                 <tr valign="top">
                     <th scope="row"><?php esc_html_e('Vacatures verversen', 'multiposter'); ?></th>
                     <td>
-                        <?php $api_intervals = get_option('api_intervals', 30); ?>
-                        <select name="api_intervals">
+                        <?php $api_intervals = get_option('multiposter_api_intervals', 30); ?>
+                        <select name="multiposter_api_intervals">
                             <option value="2" <?php selected($api_intervals, 2); ?>><?php esc_html_e('Iedere 2 minuten', 'multiposter'); ?></option>
                             <option value="5" <?php selected($api_intervals, 5); ?>><?php esc_html_e('Iedere 5 minuten', 'multiposter'); ?></option>
                             <option value="10" <?php selected($api_intervals, 10); ?>><?php esc_html_e('Iedere 10 minuten', 'multiposter'); ?></option>
@@ -660,9 +722,9 @@ function multiposter_settings_callback() {
                 <tr valign="top">
                     <th scope="row"><?php esc_html_e('Toon sollicitatieformulier bij vacatures', 'multiposter'); ?></th>
                     <td>
-                        <?php $show_form = get_option('show_form', 0); ?>
-                        <input type="hidden" name="show_form" value="0" />
-                        <input type="checkbox" name="show_form" value="1" <?php checked($show_form, 1); ?> />
+                        <?php $show_form = get_option('multiposter_show_form', 0); ?>
+                        <input type="hidden" name="multiposter_show_form" value="0" />
+                        <input type="checkbox" name="multiposter_show_form" value="1" <?php checked($show_form, 1); ?> />
                     </td>
                 </tr>
                 <tr valign="top" id="multiposter-form-fields-row">
@@ -703,7 +765,7 @@ function multiposter_settings_callback() {
                     <th scope="row"><?php esc_html_e('Stuur sollicitaties naar', 'multiposter'); ?></th>
                     <td>
                         <?php $email_mode = get_option('multiposter_form_email_mode', 'api_only'); ?>
-                        <?php $has_api_key = (bool) get_option('api_key'); ?>
+                        <?php $has_api_key = (bool) get_option('multiposter_api_key'); ?>
                         <select name="multiposter_form_email_mode">
                             <option value="api_only" <?php selected($email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'multiposter'); ?></option>
                             <option value="email_only" <?php selected($email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'multiposter'); ?></option>
@@ -760,10 +822,10 @@ function multiposter_settings_callback() {
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Stuur registraties naar', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Stuur inschrijvingen naar', 'multiposter'); ?></th>
                     <td>
                         <?php $reg_email_mode = get_option('multiposter_registration_email_mode', 'api_only'); ?>
-                        <?php $has_api_key = (bool) get_option('api_key'); ?>
+                        <?php $has_api_key = (bool) get_option('multiposter_api_key'); ?>
                         <select name="multiposter_registration_email_mode">
                             <option value="api_only" <?php selected($reg_email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'multiposter'); ?></option>
                             <option value="email_only" <?php selected($reg_email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'multiposter'); ?></option>
@@ -828,7 +890,7 @@ function multiposter_settings_callback() {
                 <tr valign="top">
                     <th scope="row"><?php esc_html_e('Afbeelding conversie', 'multiposter'); ?></th>
                     <td>
-                        <input type="text" name="multiposter_image_conversion" value="<?php echo esc_attr(get_option('multiposter_image_conversion', '')); ?>" <?php disabled(!get_option('api_key')); ?> />
+                        <input type="text" name="multiposter_image_conversion" value="<?php echo esc_attr(get_option('multiposter_image_conversion', '')); ?>" <?php disabled(!get_option('multiposter_api_key')); ?> />
                         <em><?php esc_html_e('Vul een conversienaam in om die versie te gebruiken. Zorg ervoor dat je de conversie ingesteld hebt bij de Beeldbank instellingen.', 'multiposter'); ?></em>
                     </td>
                 </tr>
@@ -870,6 +932,11 @@ function multiposter_settings_callback() {
                             <li><strong>multiposter/latest-vacancies</strong> - <?php esc_html_e('Laatste vacatures (grid/lijst)', 'multiposter'); ?></li>
                             <li><strong>multiposter/single-vacancy</strong> - <?php esc_html_e('Enkele vacature op ID', 'multiposter'); ?></li>
                             <li><strong>multiposter/vacancy-search</strong> - <?php esc_html_e('Vacature zoekbalk', 'multiposter'); ?></li>
+                            <li><strong>multiposter/application-form</strong> - <?php esc_html_e('Sollicitatieformulier', 'multiposter'); ?></li>
+                            <li><strong>multiposter/registration-form</strong> - <?php esc_html_e('Inschrijfformulier', 'multiposter'); ?></li>
+                            <li><strong>multiposter/related-vacancies</strong> - <?php esc_html_e('Gerelateerde vacatures', 'multiposter'); ?></li>
+                            <li><strong>multiposter/share-buttons</strong> - <?php esc_html_e('Deelknoppen', 'multiposter'); ?></li>
+                            <li><strong>multiposter/vacancy-images</strong> - <?php esc_html_e('Vacature afbeeldingen grid', 'multiposter'); ?></li>
                         </ul>
                     </td>
                 </tr>
@@ -881,7 +948,7 @@ function multiposter_settings_callback() {
                 <?php submit_button(__('Instellingen opslaan', 'multiposter')); ?>
             <?php endif; ?>
 
-            <?php if ($active_tab === 'general' && get_option('api_key')): ?>
+            <?php if ($active_tab === 'general' && get_option('multiposter_api_key')): ?>
                 <button type="button" class="button button-secondary" id="feachjobsnow"><?php esc_html_e('Vacatures nu ophalen', 'multiposter'); ?></button>
                 <div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="<?php echo plugins_url('assets/img/loading.gif', __FILE__); ?>"/></div> </div>
             <?php endif; ?>
@@ -894,9 +961,11 @@ function multiposter_settings_callback() {
 // Register the setting
 add_action('admin_init', 'multiposter_settings_init');
 function multiposter_settings_init() {
-    register_setting('multiposter_settings_group', 'api_intervals');
-    register_setting('multiposter_settings_group', 'api_key');
-    register_setting('multiposter_settings_group', 'show_form');
+    register_setting('multiposter_settings_group', 'multiposter_api_intervals');
+    register_setting('multiposter_settings_group', 'multiposter_api_key', array(
+        'sanitize_callback' => 'multiposter_sanitize_api_key',
+    ));
+    register_setting('multiposter_settings_group', 'multiposter_show_form');
     register_setting('multiposter_settings_group', 'multiposter_vacancy_slug', array(
         'sanitize_callback' => 'sanitize_title',
         'default' => 'vacatures',
@@ -940,6 +1009,17 @@ function multiposter_settings_init() {
     register_setting('multiposter_settings_group', 'multiposter_image_conversion', array('default' => '', 'sanitize_callback' => 'sanitize_text_field'));
 }
 
+function multiposter_sanitize_api_key($value) {
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (strpos($value, '••••') === 0) {
+        return get_option('multiposter_api_key', '');
+    }
+    return sanitize_text_field($value);
+}
+
 add_action('update_option_multiposter_favorites_enabled', function() { multiposter_invalidate_caches(); });
 add_action('update_option_multiposter_card_image_enabled', function() { multiposter_invalidate_caches(); });
 add_action('update_option_multiposter_vacancy_slug', 'multiposter_flush_rewrite_on_slug_change', 10, 2);
@@ -948,12 +1028,11 @@ function multiposter_flush_rewrite_on_slug_change() {
 }
 
 
-add_action('update_option_api_key', 'multiposter_update_cron_schedule', 10, 2);
-add_action('update_option_api_intervals', 'multiposter_update_cron_schedule', 10, 2);
+add_action('update_option_multiposter_api_key', 'multiposter_update_cron_schedule', 10, 2);
+add_action('update_option_multiposter_api_intervals', 'multiposter_update_cron_schedule', 10, 2);
 function multiposter_update_cron_schedule() {
-    flush_rewrite_rules();
     wp_clear_scheduled_hook('multiposter_custom_cron_event');
-    $interval_minutes = (int) get_option('api_intervals', 60);
+    $interval_minutes = (int) get_option('multiposter_api_intervals', 60);
     $interval_seconds = $interval_minutes * 60;
     if ($interval_seconds > 0) {
         wp_clear_scheduled_hook('multiposter_custom_interval');
@@ -965,7 +1044,7 @@ function multiposter_update_cron_schedule() {
 
 add_filter('cron_schedules', 'multiposter_custom_cron_schedule');
 function multiposter_custom_cron_schedule($schedules) {
-    $interval_minutes = (int) get_option('api_intervals', 60);
+    $interval_minutes = (int) get_option('multiposter_api_intervals', 60);
     if(!$interval_minutes){
         $interval_minutes = 15;
     }
@@ -982,7 +1061,7 @@ add_action('multiposter_custom_cron_event', 'multiposter_sync_callback');
 
 
 function multiposter_fetch_api($current_page) {
-    $api_key = get_option('api_key');
+    $api_key = get_option('multiposter_api_key');
     $url = "https://app.jobit.nl/api/vacancies/channel/62?limit=100&page={$current_page}";
     $args = array(
         'headers' => array(
@@ -1039,9 +1118,10 @@ function multiposter_fetch_api($current_page) {
 }
 
 function multiposter_sync_callback() {
-    flush_rewrite_rules();
-    $api_key = get_option('api_key');
+    $api_key = get_option('multiposter_api_key');
     if (!$api_key) return;
+
+    do_action('multiposter_before_sync');
 
     $start_time = microtime(true);
     $current_page = get_option('multiposter_current_page', 1);
@@ -1088,6 +1168,8 @@ function multiposter_sync_callback() {
 
     // Feature 6: Log sync
     multiposter_log_sync($sync_count, 0, $duration);
+
+    do_action('multiposter_after_sync', $sync_count, $duration);
 }
 
 
@@ -1230,25 +1312,31 @@ function multiposter_insert_job($job) {
     }
 
     if($post_id){
-        update_post_meta($post_id, 'short_description', $description);
-        update_post_meta($post_id, 'requirements', $requirements);
-        update_post_meta($post_id, 'offer', $offer);
-        update_post_meta($post_id, 'city', $city);
-        update_post_meta($post_id, 'number', $number);
-        update_post_meta($post_id, 'date', $date);
-        update_post_meta($post_id, 'education', $education);
-        update_post_meta($post_id, 'career_level', $career_level);
-        update_post_meta($post_id, 'employment', $employment);
-        update_post_meta($post_id, 'hours', $hours);
-        update_post_meta($post_id, 'contract', $contract);
-        update_post_meta($post_id, 'salary', $salary);
-        update_post_meta($post_id, 'email', $email);
-        update_post_meta($post_id, 'contact', $contact);
-        update_post_meta($post_id, 'office_city', $office_city);
-        update_post_meta($post_id, 'office_email', $office_email);
-        update_post_meta($post_id, 'office_phone', $office_phone);
-        update_post_meta($post_id, 'jobit_id', $job['id']);
-        update_post_meta($post_id, 'position', $position);
+        $meta = apply_filters('multiposter_job_meta', array(
+            'short_description' => $description,
+            'requirements'      => $requirements,
+            'offer'             => $offer,
+            'city'              => $city,
+            'number'            => $number,
+            'date'              => $date,
+            'education'         => $education,
+            'career_level'      => $career_level,
+            'employment'        => $employment,
+            'hours'             => $hours,
+            'contract'          => $contract,
+            'salary'            => $salary,
+            'email'             => $email,
+            'contact'           => $contact,
+            'office_city'       => $office_city,
+            'office_email'      => $office_email,
+            'office_phone'      => $office_phone,
+            'jobit_id'          => $job['id'],
+            'position'          => $position,
+        ), $job, $post_id);
+
+        foreach ($meta as $key => $value) {
+            update_post_meta($post_id, $key, $value);
+        }
 
         // Feature 8: Parse salary into numeric values for filtering
         if (!empty($salary)) {
@@ -1287,6 +1375,8 @@ function multiposter_insert_job($job) {
         if (!empty($job['media']) && is_array($job['media'])) {
             multiposter_attach_images_to_post($job['media'], $post_id);
         }
+
+        do_action('multiposter_job_imported', $post_id, $job);
     }
 }
 
@@ -1297,7 +1387,12 @@ function multiposter_load_textdomain() {
 add_action('plugins_loaded', 'multiposter_load_textdomain');
 
 // Feature 6: Import Logging
-register_activation_hook(__FILE__, 'multiposter_create_log_table');
+register_activation_hook(__FILE__, 'multiposter_activate');
+function multiposter_activate() {
+    multiposter_register_cpt();
+    flush_rewrite_rules();
+    multiposter_create_log_table();
+}
 function multiposter_create_log_table() {
     global $wpdb;
     $table = $wpdb->prefix . 'multiposter_import_log';
@@ -1318,7 +1413,7 @@ function multiposter_create_log_table() {
 function multiposter_log_sync($synced, $trashed, $duration, $errors = '') {
     global $wpdb;
     $table = $wpdb->prefix . 'multiposter_import_log';
-    if ($wpdb->get_var("SHOW TABLES LIKE '$table'") !== $table) {
+    if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) !== $table) {
         multiposter_create_log_table();
     }
     $wpdb->insert($table, array(
@@ -1329,13 +1424,14 @@ function multiposter_log_sync($synced, $trashed, $duration, $errors = '') {
         'errors' => $errors,
     ));
     // Keep only the last 1000 log entries
-    $wpdb->query("DELETE FROM $table WHERE id NOT IN (SELECT id FROM (SELECT id FROM $table ORDER BY id DESC LIMIT 1000) AS keep)");
+    $safe_table = esc_sql($table);
+    $wpdb->query("DELETE FROM `$safe_table` WHERE id NOT IN (SELECT id FROM (SELECT id FROM `$safe_table` ORDER BY id DESC LIMIT 1000) AS keep)");
 }
 
 // Import Log admin page
 add_action('admin_menu', 'multiposter_import_log_page');
 function multiposter_import_log_page() {
-    if (!get_option('api_key')) return;
+    if (!get_option('multiposter_api_key')) return;
     add_submenu_page(
         'edit.php?post_type=vacatures',
         __('Import Log', 'multiposter'),
@@ -1357,7 +1453,7 @@ function multiposter_import_log_callback() {
     $total_pages = ceil($total / $per_page);
 
     echo '<div class="wrap"><h1 style="display:inline-block;">' . esc_html__('Import Log', 'multiposter') . '</h1>';
-    if (get_option('api_key')) {
+    if (get_option('multiposter_api_key')) {
         echo ' <button class="button button-secondary" id="feachjobsnow" style="margin-left:10px;vertical-align:middle;">' . esc_html__('Vacatures nu ophalen', 'multiposter') . '</button>';
         echo '<div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="' . plugins_url('assets/img/loading.gif', __FILE__) . '"/></div> </div>';
     }
@@ -1398,7 +1494,7 @@ function multiposter_import_log_callback() {
 }
 
 function multiposter_update_expired_jobs() {
-    $api_key = get_option('api_key');
+    $api_key = get_option('multiposter_api_key');
     if($api_key){
         $url = 'https://app.jobit.nl/api/vacancies/channel/62?limit=9999';
 
@@ -1586,7 +1682,7 @@ function multiposter_render_job_card($job_id, $show_favorites = true) {
 
     $html .= '</a>';
     $html .= '</article>';
-    return $html;
+    return apply_filters('multiposter_job_card_html', $html, $job_id);
 }
 
 // SSR: Render first page of vacancies server-side
@@ -1660,7 +1756,7 @@ function multiposter_ajax_archive() {
     $salary_min = isset($_POST['salary_min']) ? intval($_POST['salary_min']) : 0;
     $salary_max = isset($_POST['salary_max']) ? intval($_POST['salary_max']) : 0;
 
-    // Feature 16: Check cache
+    // Cache key uses only sanitized values (intval/sanitize_text_field above)
     $cache_duration = get_option('multiposter_cache_duration', 3600);
     $favorites_enabled = get_option('multiposter_favorites_enabled', 1);
     $cache_key = 'multiposter_archive_' . md5(serialize(array($posts_per_page, $paged, $selected_cities, $selected_postions, $keyword, $salary_min, $salary_max, $favorites_enabled)));
@@ -1810,7 +1906,7 @@ function multiposter_single_content($content) {
         $email = get_post_meta($job_id, 'email', true);
         $contact = get_post_meta($job_id, 'contact', true);
         $office_phone = get_post_meta($job_id, 'office_phone', true);
-        $show_form = get_option('show_form');
+        $show_form = get_option('multiposter_show_form');
 
         $custom_content = '<div class="multiposter-detail">';
 
@@ -2206,7 +2302,7 @@ function multiposter_render_share_buttons($post_id) {
     }
 
     $html .= '</div>';
-    return $html;
+    return apply_filters('multiposter_share_buttons_html', $html, $post_id);
 }
 
 // =============================================
@@ -2223,6 +2319,7 @@ function multiposter_render_application_form($post_id) {
     if (!is_array($form_fields) || !isset($form_fields[0]['id'])) {
         $form_fields = $default_form_fields;
     }
+    $form_fields = apply_filters('multiposter_form_fields', $form_fields, $post_id);
 
     $html = '<form id="multiposter-application-form" enctype="multipart/form-data">';
     $html .= wp_nonce_field('multiposter_apply_action', 'multiposter_apply_nonce', true, false);
@@ -2269,7 +2366,7 @@ function multiposter_render_application_form($post_id) {
     $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Versturen', 'multiposter') . '" data-loading="' . esc_attr__('Versturen...', 'multiposter') . '">' . esc_html__('Versturen', 'multiposter') . '</button>';
     $html .= '</form>';
 
-    return $html;
+    return apply_filters('multiposter_application_form_html', $html, $post_id);
 }
 
 // AJAX handler for application form
@@ -2277,6 +2374,7 @@ add_action('wp_ajax_multiposter_apply', 'multiposter_handle_application');
 add_action('wp_ajax_nopriv_multiposter_apply', 'multiposter_handle_application');
 function multiposter_handle_application() {
     check_ajax_referer('multiposter_apply_action', '_ajax_nonce');
+    multiposter_check_rate_limit('apply');
 
     // Honeypot check
     if (!empty($_POST['multiposter_hp'])) {
@@ -2303,8 +2401,9 @@ function multiposter_handle_application() {
     $resume_path = '';
     if (!empty($_FILES['resume']['name'])) {
         $file = $_FILES['resume'];
-        $allowed = array('application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        if (!in_array($file['type'], $allowed)) {
+        $allowed_exts = array('pdf', 'doc', 'docx');
+        $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
+        if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
             wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'multiposter')));
         }
         if ($file['size'] > 5 * 1024 * 1024) {
@@ -2318,7 +2417,7 @@ function multiposter_handle_application() {
     }
 
     $email_mode = get_option('multiposter_form_email_mode', 'api_only');
-    $api_key = get_option('api_key');
+    $api_key = get_option('multiposter_api_key');
 
     // Force email mode when no API key is configured
     if (empty($api_key)) {
@@ -2398,6 +2497,7 @@ function multiposter_handle_application() {
     }
 
     if ($api_success || $email_mode === 'email_only') {
+        do_action('multiposter_application_submitted', $post_id, $email_addr);
         wp_send_json_success(array('message' => __('Je sollicitatie is succesvol verzonden!', 'multiposter')));
     } else {
         wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'multiposter')));
@@ -2461,7 +2561,7 @@ function multiposter_render_registration_form() {
     $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Registreren', 'multiposter') . '" data-loading="' . esc_attr__('Registreren...', 'multiposter') . '">' . esc_html__('Registreren', 'multiposter') . '</button>';
     $html .= '</form>';
 
-    return $html;
+    return apply_filters('multiposter_registration_form_html', $html);
 }
 
 // AJAX handler for registration form
@@ -2469,6 +2569,7 @@ add_action('wp_ajax_multiposter_register', 'multiposter_handle_registration');
 add_action('wp_ajax_nopriv_multiposter_register', 'multiposter_handle_registration');
 function multiposter_handle_registration() {
     check_ajax_referer('multiposter_register_action', '_ajax_nonce');
+    multiposter_check_rate_limit('register');
 
     // Honeypot check
     if (!empty($_POST['multiposter_hp'])) {
@@ -2493,8 +2594,9 @@ function multiposter_handle_registration() {
     $resume_path = '';
     if (!empty($_FILES['resume']['name'])) {
         $file = $_FILES['resume'];
-        $allowed = array('application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-        if (!in_array($file['type'], $allowed)) {
+        $allowed_exts = array('pdf', 'doc', 'docx');
+        $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
+        if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
             wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'multiposter')));
         }
         if ($file['size'] > 5 * 1024 * 1024) {
@@ -2508,7 +2610,7 @@ function multiposter_handle_registration() {
     }
 
     $email_mode = get_option('multiposter_registration_email_mode', 'api_only');
-    $api_key = get_option('api_key');
+    $api_key = get_option('multiposter_api_key');
 
     // Force email mode when no API key is configured
     if (empty($api_key)) {
@@ -2584,6 +2686,7 @@ function multiposter_handle_registration() {
     }
 
     if ($api_success || $email_mode === 'email_only') {
+        do_action('multiposter_registration_submitted', $email_addr);
         wp_send_json_success(array('message' => __('Je registratie is succesvol verzonden!', 'multiposter')));
     } else {
         wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'multiposter')));

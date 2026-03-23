@@ -10,18 +10,15 @@ jQuery(document).ready(function($) {
         $btn.attr('aria-expanded', open);
     });
 
-    // Feature 10: Favorites (cookie-based)
+    // Feature 10: Favorites (localStorage-based)
     function getFavorites() {
         try {
-            var match = document.cookie.match(/multiposter_favorites=([^;]+)/);
-            return match ? JSON.parse(decodeURIComponent(match[1])) : [];
+            return JSON.parse(localStorage.getItem('multiposter_favorites')) || [];
         } catch(e) { return []; }
     }
 
     function setFavorites(favs) {
-        var d = new Date();
-        d.setTime(d.getTime() + (365*24*60*60*1000));
-        document.cookie = 'multiposter_favorites=' + encodeURIComponent(JSON.stringify(favs)) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+        localStorage.setItem('multiposter_favorites', JSON.stringify(favs));
     }
 
     function updateFavoriteIcons() {
