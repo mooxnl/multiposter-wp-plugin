@@ -2,7 +2,7 @@
 Contributors: multiposter
 Tags: vacancies, jobs, recruitment, job board, vacatures
 Requires at least: 5.8
-Tested up to: 6.7
+Tested up to: 6.9
 Stable tag: 2.0
 Requires PHP: 7.4
 License: GPLv3 or later

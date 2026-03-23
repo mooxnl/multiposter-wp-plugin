@@ -30,7 +30,7 @@ function multiposter_migrate_options() {
 }
 
 function multiposter_check_rate_limit($action) {
-    $ip = $_SERVER['REMOTE_ADDR'];
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     $ttl = apply_filters('multiposter_rate_limit_ttl', 60, $action);
     $key = 'multiposter_rl_' . md5($action . '_' . $ip);
     if (get_transient($key)) {
@@ -192,94 +192,94 @@ function multiposter_meta_box_callback($post) {
     echo '<div class="job-details-container">';
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="short_description">' . __('Functieomschrijving', 'multiposter') . '</label>';
+            echo '<label for="short_description">' . esc_html__('Functieomschrijving', 'multiposter') . '</label>';
             echo '<textarea id="short_description" name="short_description" rows="4">' . esc_textarea($short_description) . '</textarea>';
         echo '</div>';
 
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="requirements">' . __('Functie eisen', 'multiposter') . '</label>';
+            echo '<label for="requirements">' . esc_html__('Functie eisen', 'multiposter') . '</label>';
             echo '<textarea id="requirements" name="requirements" rows="4">' . esc_textarea($requirements) . '</textarea>';
         echo '</div>';
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="offer">' . __('Wat bieden wij', 'multiposter') . '</label>';
+            echo '<label for="offer">' . esc_html__('Wat bieden wij', 'multiposter') . '</label>';
             echo '<textarea id="offer" name="offer" rows="4">' . esc_textarea($offer) . '</textarea>';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="city">' . __('Werklocatie', 'multiposter') . '</label>';
+            echo '<label for="city">' . esc_html__('Werklocatie', 'multiposter') . '</label>';
             echo '<input type="text" id="city" name="city" value="' . esc_attr($city) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="number">' . __('Vacaturenummer', 'multiposter') . '</label>';
+            echo '<label for="number">' . esc_html__('Vacaturenummer', 'multiposter') . '</label>';
             echo '<input type="text" id="number" name="number" value="' . esc_attr($number) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="date">' . __('Vacaturedatum', 'multiposter') . '</label>';
+            echo '<label for="date">' . esc_html__('Vacaturedatum', 'multiposter') . '</label>';
             echo '<input type="text" id="date" name="date" value="' . esc_attr($date) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="education">' . __('Opleidingsniveau', 'multiposter') . '</label>';
+            echo '<label for="education">' . esc_html__('Opleidingsniveau', 'multiposter') . '</label>';
             echo '<input type="text" id="education" name="education" value="' . esc_attr($education) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="career_level">' . __('Carrièreniveau', 'multiposter') . '</label>';
+            echo '<label for="career_level">' . esc_html__('Carrièreniveau', 'multiposter') . '</label>';
             echo '<input type="text" id="career_level" name="career_level" value="' . esc_attr($career_level) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="employment">' . __('Dienstverband', 'multiposter') . '</label>';
+            echo '<label for="employment">' . esc_html__('Dienstverband', 'multiposter') . '</label>';
             echo '<input type="text" id="employment" name="employment" value="' . esc_attr($employment) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="hours">' . __('Uren', 'multiposter') . '</label>';
+            echo '<label for="hours">' . esc_html__('Uren', 'multiposter') . '</label>';
             echo '<input type="text" id="hours" name="hours" value="' . esc_attr($hours) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="contract">' . __('Contract', 'multiposter') . '</label>';
+            echo '<label for="contract">' . esc_html__('Contract', 'multiposter') . '</label>';
             echo '<input type="text" id="contract" name="contract" value="' . esc_attr($contract) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="salary">' . __('Salaris', 'multiposter') . '</label>';
+            echo '<label for="salary">' . esc_html__('Salaris', 'multiposter') . '</label>';
             echo '<input type="text" id="salary" name="salary" value="' . esc_attr($salary) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="email">' . __('E-mailadres', 'multiposter') . '</label>';
+            echo '<label for="email">' . esc_html__('E-mailadres', 'multiposter') . '</label>';
             echo '<input type="text" id="email" name="email" value="' . esc_attr($email) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="contact">' . __('Behandelaar', 'multiposter') . '</label>';
+            echo '<label for="contact">' . esc_html__('Behandelaar', 'multiposter') . '</label>';
             echo '<input type="text" id="contact" name="contact" value="' . esc_attr($contact) . '">';
         echo '</div>';
 
     echo '</div>';
 
-    echo '<h2 class="jobs_page_heading">' . __('Vestiging', 'multiposter') . '</h2>';
+    echo '<h2 class="jobs_page_heading">' . esc_html__('Vestiging', 'multiposter') . '</h2>';
 
     echo '<div class="job-details-container office-section">';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_city">' . __('Plaats vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_city">' . esc_html__('Plaats vestiging', 'multiposter') . '</label>';
             echo '<input type="text" id="office_city" name="office_city" value="' . esc_attr($office_city) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_email">' . __('E-mailadres vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_email">' . esc_html__('E-mailadres vestiging', 'multiposter') . '</label>';
             echo '<input type="text" id="office_email" name="office_email" value="' . esc_attr($office_email) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_phone">' . __('Telefoon vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_phone">' . esc_html__('Telefoon vestiging', 'multiposter') . '</label>';
             echo '<input type="text" id="office_phone" name="office_phone" value="' . esc_attr($office_phone) . '">';
         echo '</div>';
 
@@ -289,7 +289,7 @@ function multiposter_meta_box_callback($post) {
 
 function multiposter_save_meta_box($post_id) {
     // Check if nonce is set
-    if (!isset($_POST['job_details_nonce']) || !wp_verify_nonce($_POST['job_details_nonce'], 'save_job_details')) {
+    if (!isset($_POST['job_details_nonce']) || !wp_verify_nonce(wp_unslash($_POST['job_details_nonce']), 'save_job_details')) {
         return $post_id;
     }
 
@@ -330,8 +330,8 @@ function multiposter_save_meta_box($post_id) {
     foreach ($fields as $field) {
         if (isset($_POST[$field])) {
             $value = in_array($field, $html_fields, true)
-                ? wp_kses_post($_POST[$field])
-                : sanitize_text_field($_POST[$field]);
+                ? wp_kses_post(wp_unslash($_POST[$field]))
+                : sanitize_text_field(wp_unslash($_POST[$field]));
             update_post_meta($post_id, $field, $value);
         } else {
             delete_post_meta($post_id, $field);          // If field is not set, remove it
@@ -428,7 +428,8 @@ function multiposter_settings_page() {
 }
 
 function multiposter_settings_callback() {
-    $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab navigation on WP settings page, no data modification.
+    $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'general';
     $tabs = array(
         'general'   => __('Algemeen', 'multiposter'),
         'archive'   => __('Archief', 'multiposter'),
@@ -446,7 +447,7 @@ function multiposter_settings_callback() {
 
         <nav class="nav-tab-wrapper">
             <?php foreach ($tabs as $tab_key => $tab_label): ?>
-                <a href="?post_type=vacatures&page=vacatures__settings&tab=<?php echo $tab_key; ?>" class="nav-tab <?php echo $active_tab === $tab_key ? 'nav-tab-active' : ''; ?>"><?php echo esc_html($tab_label); ?></a>
+                <a href="?post_type=vacatures&page=vacatures__settings&tab=<?php echo esc_attr($tab_key); ?>" class="nav-tab <?php echo $active_tab === $tab_key ? 'nav-tab-active' : ''; ?>"><?php echo esc_html($tab_label); ?></a>
             <?php endforeach; ?>
         </nav>
 
@@ -510,7 +511,7 @@ function multiposter_settings_callback() {
                         $last_sync = get_option('multiposter_last_sync');
                         if ($last_sync) {
                             $status_class = $last_sync['status'] === 'success' ? 'color:green' : 'color:red';
-                            echo '<span style="' . $status_class . '"><strong>' . esc_html(ucfirst($last_sync['status'])) . '</strong></span> - ';
+                            echo '<span style="' . esc_attr($status_class) . '"><strong>' . esc_html(ucfirst($last_sync['status'])) . '</strong></span> - ';
                             echo esc_html($last_sync['message']) . '<br>';
                             echo '<small>' . esc_html($last_sync['time']) . '</small>';
                         } else {
@@ -568,10 +569,10 @@ function multiposter_settings_callback() {
                         <?php foreach ($filters_config as $i => $filter): ?>
                             <li style="padding:5px;margin:2px 0;background:#f9f9f9;border:1px solid #ddd;cursor:move;">
                                 <span class="dashicons dashicons-menu" style="cursor:move;margin-right:5px;"></span>
-                                <input type="hidden" name="multiposter_filters_config[<?php echo $i; ?>][id]" value="<?php echo esc_attr($filter['id']); ?>">
-                                <input type="hidden" name="multiposter_filters_config[<?php echo $i; ?>][label]" value="<?php echo esc_attr($filter['label']); ?>">
+                                <input type="hidden" name="multiposter_filters_config[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($filter['id']); ?>">
+                                <input type="hidden" name="multiposter_filters_config[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr($filter['label']); ?>">
                                 <label>
-                                    <input type="checkbox" name="multiposter_filters_config[<?php echo $i; ?>][enabled]" value="1" <?php checked(!empty($filter['enabled']), true); ?>>
+                                    <input type="checkbox" name="multiposter_filters_config[<?php echo (int) $i; ?>][enabled]" value="1" <?php checked(!empty($filter['enabled']), true); ?>>
                                     <?php echo esc_html($filter['label']); ?>
                                 </label>
                             </li>
@@ -660,10 +661,10 @@ function multiposter_settings_callback() {
                         <?php foreach ($related_criteria as $i => $criterion): ?>
                             <li style="padding:5px;margin:2px 0;background:#f9f9f9;border:1px solid #ddd;cursor:move;">
                                 <span class="dashicons dashicons-menu" style="cursor:move;margin-right:5px;"></span>
-                                <input type="hidden" name="multiposter_related_criteria[<?php echo $i; ?>][id]" value="<?php echo esc_attr($criterion['id']); ?>">
-                                <input type="hidden" name="multiposter_related_criteria[<?php echo $i; ?>][label]" value="<?php echo esc_attr($criterion['label']); ?>">
+                                <input type="hidden" name="multiposter_related_criteria[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($criterion['id']); ?>">
+                                <input type="hidden" name="multiposter_related_criteria[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr($criterion['label']); ?>">
                                 <label>
-                                    <input type="checkbox" name="multiposter_related_criteria[<?php echo $i; ?>][enabled]" value="1" <?php checked(!empty($criterion['enabled']), true); ?>>
+                                    <input type="checkbox" name="multiposter_related_criteria[<?php echo (int) $i; ?>][enabled]" value="1" <?php checked(!empty($criterion['enabled']), true); ?>>
                                     <?php echo esc_html($criterion['label']); ?>
                                 </label>
                             </li>
@@ -700,10 +701,10 @@ function multiposter_settings_callback() {
                         <?php foreach ($share_buttons as $i => $btn): ?>
                             <li style="padding:5px;margin:2px 0;background:#f9f9f9;border:1px solid #ddd;cursor:move;">
                                 <span class="dashicons dashicons-menu" style="cursor:move;margin-right:5px;"></span>
-                                <input type="hidden" name="multiposter_share_buttons[<?php echo $i; ?>][id]" value="<?php echo esc_attr($btn['id']); ?>">
-                                <input type="hidden" name="multiposter_share_buttons[<?php echo $i; ?>][label]" value="<?php echo esc_attr($btn['label']); ?>">
+                                <input type="hidden" name="multiposter_share_buttons[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($btn['id']); ?>">
+                                <input type="hidden" name="multiposter_share_buttons[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr($btn['label']); ?>">
                                 <label>
-                                    <input type="checkbox" name="multiposter_share_buttons[<?php echo $i; ?>][enabled]" value="1" <?php checked(!empty($btn['enabled']), true); ?>>
+                                    <input type="checkbox" name="multiposter_share_buttons[<?php echo (int) $i; ?>][enabled]" value="1" <?php checked(!empty($btn['enabled']), true); ?>>
                                     <?php echo esc_html($btn['label']); ?>
                                 </label>
                             </li>
@@ -745,14 +746,14 @@ function multiposter_settings_callback() {
                         <?php foreach ($form_fields as $i => $field): ?>
                             <li style="padding:5px;margin:2px 0;background:#f9f9f9;border:1px solid #ddd;cursor:move;">
                                 <span class="dashicons dashicons-menu" style="cursor:move;margin-right:5px;"></span>
-                                <input type="hidden" name="multiposter_form_fields[<?php echo $i; ?>][id]" value="<?php echo esc_attr($field['id']); ?>">
-                                <input type="hidden" name="multiposter_form_fields[<?php echo $i; ?>][label]" value="<?php echo esc_attr($field['label']); ?>">
+                                <input type="hidden" name="multiposter_form_fields[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($field['id']); ?>">
+                                <input type="hidden" name="multiposter_form_fields[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr($field['label']); ?>">
                                 <label>
-                                    <input type="checkbox" name="multiposter_form_fields[<?php echo $i; ?>][enabled]" value="1" <?php checked(!empty($field['enabled']), true); ?>>
+                                    <input type="checkbox" name="multiposter_form_fields[<?php echo (int) $i; ?>][enabled]" value="1" <?php checked(!empty($field['enabled']), true); ?>>
                                     <?php echo esc_html($field['label']); ?>
                                 </label>
                                 <label style="margin-left:10px;">
-                                    <input type="checkbox" name="multiposter_form_fields[<?php echo $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
+                                    <input type="checkbox" name="multiposter_form_fields[<?php echo (int) $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
                                     <?php esc_html_e('Verplicht', 'multiposter'); ?>
                                 </label>
                             </li>
@@ -805,14 +806,14 @@ function multiposter_settings_callback() {
                         <?php foreach ($reg_fields as $i => $field): ?>
                             <li style="padding:5px;margin:2px 0;background:#f9f9f9;border:1px solid #ddd;cursor:move;">
                                 <span class="dashicons dashicons-menu" style="cursor:move;margin-right:5px;"></span>
-                                <input type="hidden" name="multiposter_registration_form_fields[<?php echo $i; ?>][id]" value="<?php echo esc_attr($field['id']); ?>">
-                                <input type="hidden" name="multiposter_registration_form_fields[<?php echo $i; ?>][label]" value="<?php echo esc_attr($field['label']); ?>">
+                                <input type="hidden" name="multiposter_registration_form_fields[<?php echo (int) $i; ?>][id]" value="<?php echo esc_attr($field['id']); ?>">
+                                <input type="hidden" name="multiposter_registration_form_fields[<?php echo (int) $i; ?>][label]" value="<?php echo esc_attr($field['label']); ?>">
                                 <label>
-                                    <input type="checkbox" name="multiposter_registration_form_fields[<?php echo $i; ?>][enabled]" value="1" <?php checked(!empty($field['enabled']), true); ?>>
+                                    <input type="checkbox" name="multiposter_registration_form_fields[<?php echo (int) $i; ?>][enabled]" value="1" <?php checked(!empty($field['enabled']), true); ?>>
                                     <?php echo esc_html($field['label']); ?>
                                 </label>
                                 <label style="margin-left:10px;">
-                                    <input type="checkbox" name="multiposter_registration_form_fields[<?php echo $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
+                                    <input type="checkbox" name="multiposter_registration_form_fields[<?php echo (int) $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
                                     <?php esc_html_e('Verplicht', 'multiposter'); ?>
                                 </label>
                             </li>
@@ -950,7 +951,7 @@ function multiposter_settings_callback() {
 
             <?php if ($active_tab === 'general' && get_option('multiposter_api_key')): ?>
                 <button type="button" class="button button-secondary" id="feachjobsnow"><?php esc_html_e('Vacatures nu ophalen', 'multiposter'); ?></button>
-                <div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="<?php echo plugins_url('assets/img/loading.gif', __FILE__); ?>"/></div> </div>
+                <div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="<?php echo esc_url(plugins_url('assets/img/loading.gif', __FILE__)); ?>"/></div> </div>
             <?php endif; ?>
 
         </form>
@@ -961,52 +962,72 @@ function multiposter_settings_callback() {
 // Register the setting
 add_action('admin_init', 'multiposter_settings_init');
 function multiposter_settings_init() {
-    register_setting('multiposter_settings_group', 'multiposter_api_intervals');
+    register_setting('multiposter_settings_group', 'multiposter_api_intervals', array('sanitize_callback' => 'sanitize_text_field'));
     register_setting('multiposter_settings_group', 'multiposter_api_key', array(
         'sanitize_callback' => 'multiposter_sanitize_api_key',
     ));
-    register_setting('multiposter_settings_group', 'multiposter_show_form');
+    register_setting('multiposter_settings_group', 'multiposter_show_form', array('sanitize_callback' => 'sanitize_text_field'));
     register_setting('multiposter_settings_group', 'multiposter_vacancy_slug', array(
         'sanitize_callback' => 'sanitize_title',
         'default' => 'vacatures',
     ));
     // Feature 7: Filter Control
-    register_setting('multiposter_settings_group', 'multiposter_filters_config');
+    register_setting('multiposter_settings_group', 'multiposter_filters_config', array('sanitize_callback' => 'multiposter_sanitize_sortable_config'));
     // Feature 9: Pagination
     register_setting('multiposter_settings_group', 'multiposter_default_per_page', array('default' => 10, 'sanitize_callback' => 'absint'));
-    register_setting('multiposter_settings_group', 'multiposter_show_per_page_selector', array('default' => 1));
-    register_setting('multiposter_settings_group', 'multiposter_per_page_options', array('default' => '10,25,50,100'));
+    register_setting('multiposter_settings_group', 'multiposter_show_per_page_selector', array('default' => 1, 'sanitize_callback' => 'absint'));
+    register_setting('multiposter_settings_group', 'multiposter_per_page_options', array('default' => '10,25,50,100', 'sanitize_callback' => 'sanitize_text_field'));
     register_setting('multiposter_settings_group', 'multiposter_archive_columns', array('default' => 1, 'sanitize_callback' => 'absint'));
-    register_setting('multiposter_settings_group', 'multiposter_card_image_enabled', array('default' => 1));
+    register_setting('multiposter_settings_group', 'multiposter_card_image_enabled', array('default' => 1, 'sanitize_callback' => 'absint'));
     // Feature 11: Related Vacancies
-    register_setting('multiposter_settings_group', 'multiposter_related_enabled', array('default' => 1));
+    register_setting('multiposter_settings_group', 'multiposter_related_enabled', array('default' => 1, 'sanitize_callback' => 'absint'));
     register_setting('multiposter_settings_group', 'multiposter_related_count', array('default' => 3, 'sanitize_callback' => 'absint'));
-    register_setting('multiposter_settings_group', 'multiposter_related_criteria');
+    register_setting('multiposter_settings_group', 'multiposter_related_criteria', array('sanitize_callback' => 'multiposter_sanitize_sortable_config'));
     // Feature 12: Share Buttons
     register_setting('multiposter_settings_group', 'multiposter_gallery_max_images', array('default' => 0, 'sanitize_callback' => 'absint'));
-    register_setting('multiposter_settings_group', 'multiposter_share_enabled', array('default' => 1));
-    register_setting('multiposter_settings_group', 'multiposter_share_buttons');
+    register_setting('multiposter_settings_group', 'multiposter_share_enabled', array('default' => 1, 'sanitize_callback' => 'absint'));
+    register_setting('multiposter_settings_group', 'multiposter_share_buttons', array('sanitize_callback' => 'multiposter_sanitize_sortable_config'));
     // Feature 13: Application Form
-    register_setting('multiposter_settings_group', 'multiposter_form_fields');
-    register_setting('multiposter_settings_group', 'multiposter_form_email_mode', array('default' => 'api_only'));
-    register_setting('multiposter_settings_group', 'multiposter_form_notification_email');
+    register_setting('multiposter_settings_group', 'multiposter_form_fields', array('sanitize_callback' => 'multiposter_sanitize_sortable_config'));
+    register_setting('multiposter_settings_group', 'multiposter_form_email_mode', array('default' => 'api_only', 'sanitize_callback' => 'sanitize_text_field'));
+    register_setting('multiposter_settings_group', 'multiposter_form_notification_email', array('sanitize_callback' => 'sanitize_email'));
 
-    register_setting('multiposter_settings_group', 'multiposter_registration_form_fields');
-    register_setting('multiposter_settings_group', 'multiposter_registration_email_mode', array('default' => 'api_only'));
-    register_setting('multiposter_settings_group', 'multiposter_registration_notification_email');
+    register_setting('multiposter_settings_group', 'multiposter_registration_form_fields', array('sanitize_callback' => 'multiposter_sanitize_sortable_config'));
+    register_setting('multiposter_settings_group', 'multiposter_registration_email_mode', array('default' => 'api_only', 'sanitize_callback' => 'sanitize_text_field'));
+    register_setting('multiposter_settings_group', 'multiposter_registration_notification_email', array('sanitize_callback' => 'sanitize_email'));
     // Feature 10: Favorites
-    register_setting('multiposter_settings_group', 'multiposter_favorites_enabled', array('default' => 1));
+    register_setting('multiposter_settings_group', 'multiposter_favorites_enabled', array('default' => 1, 'sanitize_callback' => 'absint'));
     // Feature 14: SEO
-    register_setting('multiposter_settings_group', 'multiposter_seo_single_title');
-    register_setting('multiposter_settings_group', 'multiposter_seo_single_desc');
-    register_setting('multiposter_settings_group', 'multiposter_seo_archive_title');
-    register_setting('multiposter_settings_group', 'multiposter_seo_archive_desc');
+    register_setting('multiposter_settings_group', 'multiposter_seo_single_title', array('sanitize_callback' => 'sanitize_text_field'));
+    register_setting('multiposter_settings_group', 'multiposter_seo_single_desc', array('sanitize_callback' => 'sanitize_text_field'));
+    register_setting('multiposter_settings_group', 'multiposter_seo_archive_title', array('sanitize_callback' => 'sanitize_text_field'));
+    register_setting('multiposter_settings_group', 'multiposter_seo_archive_desc', array('sanitize_callback' => 'sanitize_text_field'));
     // Feature 15: Open Graph
-    register_setting('multiposter_settings_group', 'multiposter_og_enabled', array('default' => 1));
+    register_setting('multiposter_settings_group', 'multiposter_og_enabled', array('default' => 1, 'sanitize_callback' => 'absint'));
     // Feature 16: Cache
     register_setting('multiposter_settings_group', 'multiposter_cache_duration', array('default' => 3600, 'sanitize_callback' => 'absint'));
     // Multi-image: Image conversion setting
     register_setting('multiposter_settings_group', 'multiposter_image_conversion', array('default' => '', 'sanitize_callback' => 'sanitize_text_field'));
+}
+
+function multiposter_sanitize_sortable_config($value) {
+    if (!is_array($value)) return array();
+    $sanitized = array();
+    foreach ($value as $item) {
+        if (!is_array($item) || empty($item['id'])) continue;
+        $entry = array(
+            'id' => sanitize_key($item['id']),
+            'label' => sanitize_text_field($item['label'] ?? ''),
+        );
+        if (isset($item['enabled'])) {
+            $entry['enabled'] = absint($item['enabled']);
+        }
+        if (isset($item['required'])) {
+            $entry['required'] = absint($item['required']);
+        }
+        $sanitized[] = $entry;
+    }
+    return $sanitized;
 }
 
 function multiposter_sanitize_api_key($value) {
@@ -1103,6 +1124,7 @@ function multiposter_fetch_api($current_page) {
             continue;
         }
 
+        // translators: %d is the HTTP status code.
         $error_msg = sprintf(__('API returned HTTP %d', 'multiposter'), $status_code);
         update_option('multiposter_last_sync', array(
             'time' => current_time('mysql'),
@@ -1161,6 +1183,7 @@ function multiposter_sync_callback() {
     update_option('multiposter_last_sync', array(
         'time' => current_time('mysql'),
         'status' => 'success',
+        // translators: %d is the number of synced vacancies.
         'message' => sprintf(__('%d vacatures gesynchroniseerd', 'multiposter'), $sync_count),
         'count' => $sync_count,
         'duration' => $duration,
@@ -1381,10 +1404,6 @@ function multiposter_insert_job($job) {
 }
 
 
-function multiposter_load_textdomain() {
-    load_plugin_textdomain('multiposter', false, dirname(plugin_basename(__FILE__)) . '/languages');
-}
-add_action('plugins_loaded', 'multiposter_load_textdomain');
 
 // Feature 6: Import Logging
 register_activation_hook(__FILE__, 'multiposter_activate');
@@ -1413,9 +1432,11 @@ function multiposter_create_log_table() {
 function multiposter_log_sync($synced, $trashed, $duration, $errors = '') {
     global $wpdb;
     $table = $wpdb->prefix . 'multiposter_import_log';
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table)) !== $table) {
         multiposter_create_log_table();
     }
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->insert($table, array(
         'sync_time' => current_time('mysql'),
         'vacancies_synced' => $synced,
@@ -1425,6 +1446,7 @@ function multiposter_log_sync($synced, $trashed, $duration, $errors = '') {
     ));
     // Keep only the last 1000 log entries
     $safe_table = esc_sql($table);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->query("DELETE FROM `$safe_table` WHERE id NOT IN (SELECT id FROM (SELECT id FROM `$safe_table` ORDER BY id DESC LIMIT 1000) AS keep)");
 }
 
@@ -1445,17 +1467,20 @@ function multiposter_import_log_page() {
 function multiposter_import_log_callback() {
     global $wpdb;
     $table = $wpdb->prefix . 'multiposter_import_log';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Pagination on admin page, no data modification.
     $page = isset($_GET['log_page']) ? max(1, intval($_GET['log_page'])) : 1;
     $per_page = 20;
     $offset = ($page - 1) * $per_page;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $total = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $logs = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table ORDER BY sync_time DESC LIMIT %d OFFSET %d", $per_page, $offset));
     $total_pages = ceil($total / $per_page);
 
     echo '<div class="wrap"><h1 style="display:inline-block;">' . esc_html__('Import Log', 'multiposter') . '</h1>';
     if (get_option('multiposter_api_key')) {
         echo ' <button class="button button-secondary" id="feachjobsnow" style="margin-left:10px;vertical-align:middle;">' . esc_html__('Vacatures nu ophalen', 'multiposter') . '</button>';
-        echo '<div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="' . plugins_url('assets/img/loading.gif', __FILE__) . '"/></div> </div>';
+        echo '<div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="' . esc_url(plugins_url('assets/img/loading.gif', __FILE__)) . '"/></div> </div>';
     }
     echo '<table class="widefat fixed striped"><thead><tr>';
     echo '<th>' . esc_html__('Datum', 'multiposter') . '</th>';
@@ -1486,7 +1511,7 @@ function multiposter_import_log_callback() {
         for ($i = 1; $i <= $total_pages; $i++) {
             $url = add_query_arg('log_page', $i);
             $class = $i === $page ? 'class="current"' : '';
-            echo '<a ' . $class . ' href="' . esc_url($url) . '">' . $i . '</a> ';
+            echo '<a ' . $class . ' href="' . esc_url($url) . '">' . (int) $i . '</a> ';
         }
         echo '</div></div>';
     }
@@ -1752,7 +1777,7 @@ function multiposter_ajax_archive() {
     $paged = isset($_POST['paged']) ? intval($_POST['paged']) : 1;
     $selected_cities = isset($_POST['selectedCities']) ? array_map('intval', $_POST['selectedCities']) : [];
     $selected_postions = isset($_POST['selectedPostions']) ? array_map('intval', $_POST['selectedPostions']) : [];
-    $keyword = isset($_POST['keyword']) ? sanitize_text_field($_POST['keyword']) : '';
+    $keyword = isset($_POST['keyword']) ? sanitize_text_field(wp_unslash($_POST['keyword'])) : '';
     $salary_min = isset($_POST['salary_min']) ? intval($_POST['salary_min']) : 0;
     $salary_max = isset($_POST['salary_max']) ? intval($_POST['salary_max']) : 0;
 
@@ -1763,6 +1788,7 @@ function multiposter_ajax_archive() {
     if ($cache_duration > 0) {
         $cached = get_transient($cache_key);
         if ($cached !== false) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Cached JSON output from our own render functions.
             echo $cached;
             wp_die();
         }
@@ -1845,6 +1871,7 @@ function multiposter_ajax_archive() {
             $salary = get_post_meta($job_id, 'salary', true);
             $date = get_post_meta($job_id, 'date', true);
 
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output from multiposter_render_job_card() is pre-escaped.
             echo multiposter_render_job_card($job_id, $favorites_enabled);
             ?><?php
         }
@@ -1886,6 +1913,7 @@ function multiposter_ajax_archive() {
         set_transient($cache_key, $result, $cache_duration);
     }
 
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded response with pre-escaped HTML.
     echo $result;
     wp_reset_postdata();
     wp_die();
@@ -1939,7 +1967,7 @@ function multiposter_single_content($content) {
             $specs[] = '<li>' . multiposter_icon('euro') . ' ' . esc_html($salary) . '</li>';
         }
         if (!empty($date)) {
-            $specs[] = '<li>' . multiposter_icon('calendar') . ' ' . esc_html(date('d-m-Y', strtotime($date))) . '</li>';
+            $specs[] = '<li>' . multiposter_icon('calendar') . ' ' . esc_html(gmdate('d-m-Y', strtotime($date))) . '</li>';
         }
         if (!empty($specs)) {
             $custom_content .= '<ul class="multiposter-detail__specs">' . implode('', $specs) . '</ul>';
@@ -2017,14 +2045,14 @@ function multiposter_job_posting_schema() {
         $career_level = get_post_meta($job_id, 'career_level', true);
         $date = get_post_meta($job_id, 'date', true);
         $employment = get_post_meta($job_id, 'employment', true);
-        $short_description = strip_tags(get_post_meta($job_id, 'short_description', true));
+        $short_description = wp_strip_all_tags(get_post_meta($job_id, 'short_description', true));
         $office_city = get_post_meta($job_id, 'office_city', true);
         $office_email = get_post_meta($job_id, 'office_email', true);
         $office_phone = get_post_meta($job_id, 'office_phone', true);
         
         // Format the date to ISO 8601
-        $valid_through = date('c', strtotime('+30 days')); // Set validity to 30 days from now
-        $date_posted = !empty($date) ? date('c', strtotime($date)) : date('c');
+        $valid_through = gmdate('c', strtotime('+30 days')); // Set validity to 30 days from now
+        $date_posted = !empty($date) ? gmdate('c', strtotime($date)) : gmdate('c');
 
         // Parse salary if available
         $salary_data = [
@@ -2381,12 +2409,12 @@ function multiposter_handle_application() {
         wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'multiposter')));
     }
 
-    $first_name = sanitize_text_field($_POST['first_name'] ?? '');
-    $last_name = sanitize_text_field($_POST['last_name'] ?? '');
-    $email_addr = sanitize_email($_POST['email'] ?? '');
-    $tel = sanitize_text_field($_POST['tel'] ?? '');
-    $motivation = sanitize_textarea_field($_POST['motivation'] ?? '');
-    $vacancy_id = sanitize_text_field($_POST['vacancy_id'] ?? '');
+    $first_name = sanitize_text_field(wp_unslash($_POST['first_name'] ?? ''));
+    $last_name = sanitize_text_field(wp_unslash($_POST['last_name'] ?? ''));
+    $email_addr = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+    $tel = sanitize_text_field(wp_unslash($_POST['tel'] ?? ''));
+    $motivation = sanitize_textarea_field(wp_unslash($_POST['motivation'] ?? ''));
+    $vacancy_id = sanitize_text_field(wp_unslash($_POST['vacancy_id'] ?? ''));
     $post_id = intval($_POST['post_id'] ?? 0);
 
     if (empty($first_name) || empty($last_name) || empty($email_addr)) {
@@ -2399,8 +2427,8 @@ function multiposter_handle_application() {
 
     // Handle file upload
     $resume_path = '';
-    if (!empty($_FILES['resume']['name'])) {
-        $file = $_FILES['resume'];
+    if (isset($_FILES['resume']) && !empty($_FILES['resume']['name'])) {
+        $file = $_FILES['resume']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File handled via wp_handle_upload().
         $allowed_exts = array('pdf', 'doc', 'docx');
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
         if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
@@ -2484,6 +2512,7 @@ function multiposter_handle_application() {
             $notification_email = get_option('admin_email');
         }
         if (!empty($notification_email)) {
+            // translators: %s is the vacancy title.
             $subject = sprintf(__('Nieuwe sollicitatie: %s', 'multiposter'), get_the_title($post_id));
             $message = sprintf("%s %s\n%s: %s\n%s: %s\n\n%s",
                 $first_name, $last_name,
@@ -2576,11 +2605,11 @@ function multiposter_handle_registration() {
         wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'multiposter')));
     }
 
-    $first_name = sanitize_text_field($_POST['first_name'] ?? '');
-    $last_name = sanitize_text_field($_POST['last_name'] ?? '');
-    $email_addr = sanitize_email($_POST['email'] ?? '');
-    $tel = sanitize_text_field($_POST['tel'] ?? '');
-    $motivation = sanitize_textarea_field($_POST['motivation'] ?? '');
+    $first_name = sanitize_text_field(wp_unslash($_POST['first_name'] ?? ''));
+    $last_name = sanitize_text_field(wp_unslash($_POST['last_name'] ?? ''));
+    $email_addr = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+    $tel = sanitize_text_field(wp_unslash($_POST['tel'] ?? ''));
+    $motivation = sanitize_textarea_field(wp_unslash($_POST['motivation'] ?? ''));
 
     if (empty($first_name) || empty($last_name) || empty($email_addr)) {
         wp_send_json_error(array('message' => __('Vul alle verplichte velden in.', 'multiposter')));
@@ -2592,8 +2621,8 @@ function multiposter_handle_registration() {
 
     // Handle file upload
     $resume_path = '';
-    if (!empty($_FILES['resume']['name'])) {
-        $file = $_FILES['resume'];
+    if (isset($_FILES['resume']) && !empty($_FILES['resume']['name'])) {
+        $file = $_FILES['resume']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File handled via wp_handle_upload().
         $allowed_exts = array('pdf', 'doc', 'docx');
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
         if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
@@ -2776,6 +2805,7 @@ function multiposter_og_tags() {
 // =============================================
 function multiposter_invalidate_caches() {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_multiposter_archive_%' OR option_name LIKE '_transient_timeout_multiposter_archive_%' OR option_name LIKE '_transient_multiposter_ssr_%' OR option_name LIKE '_transient_timeout_multiposter_ssr_%'");
 }
 

@@ -1,23 +1,24 @@
 <?php
+defined( 'ABSPATH' ) || exit;
 get_header();
 
 // Filter config
-$default_filters = array(
+$multiposter_default_filters = array(
     array('id' => 'keyword', 'label' => __('Zoeken', 'multiposter'), 'enabled' => 1),
     array('id' => 'position', 'label' => __('Functie', 'multiposter'), 'enabled' => 1),
     array('id' => 'city', 'label' => __('Plaats', 'multiposter'), 'enabled' => 1),
     array('id' => 'salary', 'label' => __('Salaris', 'multiposter'), 'enabled' => 1),
 );
-$filters_config = get_option('multiposter_filters_config', $default_filters);
-if (!is_array($filters_config)) {
-    $filters_config = $default_filters;
+$multiposter_filters_config = get_option('multiposter_filters_config', $multiposter_default_filters);
+if (!is_array($multiposter_filters_config)) {
+    $multiposter_filters_config = $multiposter_default_filters;
 }
 
-$default_per_page = get_option('multiposter_default_per_page', 10);
-$show_per_page_selector = get_option('multiposter_show_per_page_selector', 1);
-$per_page_options = array_map('trim', explode(',', get_option('multiposter_per_page_options', '10,25,50,100')));
-$favorites_enabled = get_option('multiposter_favorites_enabled', 1);
-$columns = intval(get_option('multiposter_archive_columns', 1));
+$multiposter_default_per_page = get_option('multiposter_default_per_page', 10);
+$multiposter_show_per_page_selector = get_option('multiposter_show_per_page_selector', 1);
+$multiposter_per_page_options = array_map('trim', explode(',', get_option('multiposter_per_page_options', '10,25,50,100')));
+$multiposter_favorites_enabled = get_option('multiposter_favorites_enabled', 1);
+$multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
 ?>
 
 <div class="multiposter-archive">
@@ -28,10 +29,10 @@ $columns = intval(get_option('multiposter_archive_columns', 1));
             <svg class="multiposter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>
         </button>
         <form id="multiposter-filter-form">
-            <?php foreach ($filters_config as $filter):
-                if (empty($filter['enabled'])) continue;
+            <?php foreach ($multiposter_filters_config as $multiposter_filter):
+                if (empty($multiposter_filter['enabled'])) continue;
 
-                switch ($filter['id']):
+                switch ($multiposter_filter['id']):
                     case 'keyword': ?>
                         <div class="multiposter-filter-group">
                             <label for="multiposter-keyword"><?php esc_html_e('Zoeken', 'multiposter'); ?></label>
@@ -43,10 +44,10 @@ $columns = intval(get_option('multiposter_archive_columns', 1));
                         <fieldset class="multiposter-filter-group">
                             <legend><?php esc_html_e('Functie', 'multiposter'); ?></legend>
                             <?php
-                            $terms = get_terms(array('taxonomy' => 'position', 'hide_empty' => true));
-                            if (!is_wp_error($terms) && !empty($terms)): ?>
+                            $multiposter_terms = get_terms(array('taxonomy' => 'position', 'hide_empty' => true));
+                            if (!is_wp_error($multiposter_terms) && !empty($multiposter_terms)): ?>
                                 <ul class="multiposter-checkbox-list">
-                                    <?php foreach ($terms as $term): ?>
+                                    <?php foreach ($multiposter_terms as $term): ?>
                                         <li>
                                             <label>
                                                 <input type="checkbox" name="position[]" value="<?php echo esc_attr($term->term_id); ?>">
@@ -63,10 +64,10 @@ $columns = intval(get_option('multiposter_archive_columns', 1));
                         <fieldset class="multiposter-filter-group">
                             <legend><?php esc_html_e('Plaats', 'multiposter'); ?></legend>
                             <?php
-                            $terms = get_terms(array('taxonomy' => 'cities', 'hide_empty' => true));
-                            if (!is_wp_error($terms) && !empty($terms)): ?>
+                            $multiposter_terms = get_terms(array('taxonomy' => 'cities', 'hide_empty' => true));
+                            if (!is_wp_error($multiposter_terms) && !empty($multiposter_terms)): ?>
                                 <ul class="multiposter-checkbox-list">
-                                    <?php foreach ($terms as $term): ?>
+                                    <?php foreach ($multiposter_terms as $term): ?>
                                         <li>
                                             <label>
                                                 <input type="checkbox" name="city[]" value="<?php echo esc_attr($term->term_id); ?>">
@@ -92,7 +93,7 @@ $columns = intval(get_option('multiposter_archive_columns', 1));
                 endswitch;
             endforeach; ?>
 
-            <?php if ($favorites_enabled): ?>
+            <?php if ($multiposter_favorites_enabled): ?>
             <div class="multiposter-filter-group multiposter-favorites-filter">
                 <label>
                     <input type="checkbox" id="multiposter-show-favorites">
@@ -110,22 +111,28 @@ $columns = intval(get_option('multiposter_archive_columns', 1));
             </svg>
         </div>
 
-        <div class="multiposter-vacancies multiposter-columns-<?php echo esc_attr($columns); ?>">
-            <?php echo multiposter_render_archive_page_ssr($default_per_page, $favorites_enabled); ?>
+        <div class="multiposter-vacancies multiposter-columns-<?php echo esc_attr($multiposter_columns); ?>">
+            <?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns pre-escaped HTML.
+            echo multiposter_render_archive_page_ssr($multiposter_default_per_page, $multiposter_favorites_enabled);
+            ?>
         </div>
 
         <nav class="multiposter-pagination">
-            <?php echo multiposter_render_archive_pagination_ssr($default_per_page); ?>
+            <?php
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Returns pre-escaped HTML.
+            echo multiposter_render_archive_pagination_ssr($multiposter_default_per_page);
+            ?>
         </nav>
 
-        <?php if ($show_per_page_selector): ?>
+        <?php if ($multiposter_show_per_page_selector): ?>
         <div class="multiposter-per-page">
             <select id="multiposter-per-page">
-                <?php foreach ($per_page_options as $opt):
-                    $opt = intval($opt);
-                    if ($opt <= 0) continue;
+                <?php foreach ($multiposter_per_page_options as $multiposter_opt):
+                    $multiposter_opt = intval($multiposter_opt);
+                    if ($multiposter_opt <= 0) continue;
                 ?>
-                    <option value="<?php echo $opt; ?>" <?php selected($opt, $default_per_page); ?>><?php echo $opt; ?> <?php esc_html_e('per pagina', 'multiposter'); ?></option>
+                    <option value="<?php echo (int) $multiposter_opt; ?>" <?php selected($multiposter_opt, $multiposter_default_per_page); ?>><?php echo (int) $multiposter_opt; ?> <?php esc_html_e('per pagina', 'multiposter'); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
