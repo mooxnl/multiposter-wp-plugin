@@ -289,7 +289,7 @@ function multiposter_meta_box_callback($post) {
 
 function multiposter_save_meta_box($post_id) {
     // Check if nonce is set
-    if (!isset($_POST['job_details_nonce']) || !wp_verify_nonce(wp_unslash($_POST['job_details_nonce']), 'save_job_details')) {
+    if (!isset($_POST['job_details_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['job_details_nonce'])), 'save_job_details')) {
         return $post_id;
     }
 
@@ -1446,7 +1446,7 @@ function multiposter_log_sync($synced, $trashed, $duration, $errors = '') {
     ));
     // Keep only the last 1000 log entries
     $safe_table = esc_sql($table);
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     $wpdb->query("DELETE FROM `$safe_table` WHERE id NOT IN (SELECT id FROM (SELECT id FROM `$safe_table` ORDER BY id DESC LIMIT 1000) AS keep)");
 }
 
@@ -1471,10 +1471,11 @@ function multiposter_import_log_callback() {
     $page = isset($_GET['log_page']) ? max(1, intval($_GET['log_page'])) : 1;
     $per_page = 20;
     $offset = ($page - 1) * $per_page;
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $total = $wpdb->get_var("SELECT COUNT(*) FROM $table");
-    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-    $logs = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table ORDER BY sync_time DESC LIMIT %d OFFSET %d", $per_page, $offset));
+    $safe_table = esc_sql($table);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $total = $wpdb->get_var("SELECT COUNT(*) FROM `$safe_table`");
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    $logs = $wpdb->get_results($wpdb->prepare("SELECT * FROM `$safe_table` ORDER BY sync_time DESC LIMIT %d OFFSET %d", $per_page, $offset));
     $total_pages = ceil($total / $per_page);
 
     echo '<div class="wrap"><h1 style="display:inline-block;">' . esc_html__('Import Log', 'multiposter') . '</h1>';
@@ -1510,8 +1511,8 @@ function multiposter_import_log_callback() {
         echo '<div class="tablenav"><div class="tablenav-pages">';
         for ($i = 1; $i <= $total_pages; $i++) {
             $url = add_query_arg('log_page', $i);
-            $class = $i === $page ? 'class="current"' : '';
-            echo '<a ' . $class . ' href="' . esc_url($url) . '">' . (int) $i . '</a> ';
+            $class = $i === $page ? ' class="current"' : '';
+            echo '<a' . esc_attr($class) . ' href="' . esc_url($url) . '">' . (int) $i . '</a> ';
         }
         echo '</div></div>';
     }
