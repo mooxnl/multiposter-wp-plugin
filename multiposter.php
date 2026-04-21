@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Multiposter
- * Version:           2.0
+ * Version:           2.1
  * Text Domain:       multiposter
  * Domain Path:       /languages
  * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
@@ -45,7 +45,7 @@ function multiposter_enqueue_admin_scripts() {
         'multiposter-admin-js',
         plugins_url('assets/js/multiposter.js', __FILE__),
         array('jquery', 'jquery-ui-sortable'),
-        '2.0.0',
+        '2.1.0',
         true
     );
     wp_enqueue_script('multiposter-admin-js');
@@ -447,7 +447,7 @@ function multiposter_settings_callback() {
 
         <nav class="nav-tab-wrapper">
             <?php foreach ($tabs as $tab_key => $tab_label): ?>
-                <a href="?post_type=vacatures&page=vacatures__settings&tab=<?php echo esc_attr($tab_key); ?>" class="nav-tab <?php echo $active_tab === $tab_key ? 'nav-tab-active' : ''; ?>"><?php echo esc_html($tab_label); ?></a>
+                <a href="?post_type=vacatures&page=vacatures__settings&tab=<?php echo esc_attr($tab_key); ?>" class="nav-tab <?php echo esc_attr($active_tab === $tab_key ? 'nav-tab-active' : ''); ?>"><?php echo esc_html($tab_label); ?></a>
             <?php endforeach; ?>
         </nav>
 
@@ -461,7 +461,7 @@ function multiposter_settings_callback() {
             do_settings_sections('multiposter_settings');
             ?>
 
-            <div style="<?php echo $active_tab !== 'general' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'general' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -547,7 +547,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'archive' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'archive' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -623,7 +623,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'detail' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'detail' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -717,7 +717,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'form' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'form' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -785,7 +785,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'registration' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'registration' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top" id="multiposter-registration-fields-row">
@@ -845,7 +845,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'seo' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'seo' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -885,7 +885,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'media' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'media' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -899,7 +899,7 @@ function multiposter_settings_callback() {
             </table>
             </div>
 
-            <div style="<?php echo $active_tab !== 'reference' ? 'display:none;' : ''; ?>">
+            <div style="<?php echo esc_attr($active_tab !== 'reference' ? 'display:none;' : ''); ?>">
             <table class="form-table">
 
                 <tr valign="top">
@@ -1897,13 +1897,13 @@ function multiposter_ajax_archive() {
             }
         }
         
-        $result = json_encode(array(
+        $result = wp_json_encode(array(
             'html'       => $html,
             'pagination' => $pagination_html,
         ));
     } else {
         $html = ob_get_clean();
-        $result = json_encode(array(
+        $result = wp_json_encode(array(
             'html' => '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'multiposter') . '</p>',
             'pagination' => ''
         ));
@@ -2319,14 +2319,19 @@ function multiposter_render_share_buttons($post_id) {
     $html = '<div class="multiposter-share-buttons">';
     $html .= '<span class="multiposter-share-label">' . esc_html__('Delen:', 'multiposter') . '</span>';
 
+    $allowed_svg = array(
+        'svg'  => array('width' => array(), 'height' => array(), 'viewbox' => array(), 'fill' => array(), 'xmlns' => array()),
+        'path' => array('d' => array(), 'fill' => array()),
+    );
+
     foreach ($share_buttons as $btn) {
         if (empty($btn['enabled'])) continue;
         if (!isset($buttons[$btn['id']])) continue;
 
         $b = $buttons[$btn['id']];
-        $target = $b['target'] ? ' target="' . $b['target'] . '" rel="noopener noreferrer"' : '';
-        $html .= '<a href="' . $b['href'] . '"' . $target . ' class="multiposter-share-btn ' . $b['class'] . '" title="' . $b['title'] . '">';
-        $html .= $b['icon'];
+        $target = $b['target'] ? ' target="' . esc_attr($b['target']) . '" rel="noopener noreferrer"' : '';
+        $html .= '<a href="' . esc_url($b['href'], array('http', 'https', 'mailto')) . '"' . $target . ' class="multiposter-share-btn ' . esc_attr($b['class']) . '" title="' . esc_attr($b['title']) . '">';
+        $html .= wp_kses($b['icon'], $allowed_svg);
         $html .= '</a>';
     }
 
@@ -2820,7 +2825,7 @@ function multiposter_register_blocks() {
 
     // Vacancy Archive Block
     if (file_exists($blocks_dir . 'vacancy-archive.js')) {
-        wp_register_script('multiposter-block-archive', plugins_url('assets/js/blocks/vacancy-archive.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.0.0', true);
+        wp_register_script('multiposter-block-archive', plugins_url('assets/js/blocks/vacancy-archive.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.1.0', true);
         register_block_type('multiposter/vacancy-archive', array(
             'editor_script' => 'multiposter-block-archive',
             'render_callback' => 'multiposter_block_archive_render',
@@ -2833,7 +2838,7 @@ function multiposter_register_blocks() {
 
     // Latest Vacancies Block
     if (file_exists($blocks_dir . 'latest-vacancies.js')) {
-        wp_register_script('multiposter-block-latest', plugins_url('assets/js/blocks/latest-vacancies.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.0.0', true);
+        wp_register_script('multiposter-block-latest', plugins_url('assets/js/blocks/latest-vacancies.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.1.0', true);
         register_block_type('multiposter/latest-vacancies', array(
             'editor_script' => 'multiposter-block-latest',
             'render_callback' => 'multiposter_block_latest_render',
@@ -2846,7 +2851,7 @@ function multiposter_register_blocks() {
 
     // Single Vacancy Block
     if (file_exists($blocks_dir . 'single-vacancy.js')) {
-        wp_register_script('multiposter-block-single', plugins_url('assets/js/blocks/single-vacancy.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.0.0', true);
+        wp_register_script('multiposter-block-single', plugins_url('assets/js/blocks/single-vacancy.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n'), '2.1.0', true);
         register_block_type('multiposter/single-vacancy', array(
             'editor_script' => 'multiposter-block-single',
             'render_callback' => 'multiposter_block_single_render',
@@ -2858,7 +2863,7 @@ function multiposter_register_blocks() {
 
     // Vacancy Search Block
     if (file_exists($blocks_dir . 'vacancy-search.js')) {
-        wp_register_script('multiposter-block-search', plugins_url('assets/js/blocks/vacancy-search.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-i18n'), '2.0.0', true);
+        wp_register_script('multiposter-block-search', plugins_url('assets/js/blocks/vacancy-search.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-i18n'), '2.1.0', true);
         register_block_type('multiposter/vacancy-search', array(
             'editor_script' => 'multiposter-block-search',
             'render_callback' => 'multiposter_block_search_render',
@@ -2869,7 +2874,7 @@ function multiposter_register_blocks() {
     $context_deps = array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-data');
 
     if (file_exists($blocks_dir . 'application-form.js')) {
-        wp_register_script('multiposter-block-application-form', plugins_url('assets/js/blocks/application-form.js', __FILE__), $context_deps, '2.0.0', true);
+        wp_register_script('multiposter-block-application-form', plugins_url('assets/js/blocks/application-form.js', __FILE__), $context_deps, '2.1.0', true);
         register_block_type('multiposter/application-form', array(
             'editor_script' => 'multiposter-block-application-form',
             'render_callback' => 'multiposter_block_application_form_render',
@@ -2881,7 +2886,7 @@ function multiposter_register_blocks() {
 
     // Vacancy Images Block
     if (file_exists($blocks_dir . 'vacancy-images.js')) {
-        wp_register_script('multiposter-block-vacancy-images', plugins_url('assets/js/blocks/vacancy-images.js', __FILE__), $context_deps, '2.0.0', true);
+        wp_register_script('multiposter-block-vacancy-images', plugins_url('assets/js/blocks/vacancy-images.js', __FILE__), $context_deps, '2.1.0', true);
         register_block_type('multiposter/vacancy-images', array(
             'editor_script' => 'multiposter-block-vacancy-images',
             'render_callback' => 'multiposter_block_images_render',
@@ -2893,7 +2898,7 @@ function multiposter_register_blocks() {
 
     // Share Buttons Block
     if (file_exists($blocks_dir . 'share-buttons.js')) {
-        wp_register_script('multiposter-block-share-buttons', plugins_url('assets/js/blocks/share-buttons.js', __FILE__), $context_deps, '2.0.0', true);
+        wp_register_script('multiposter-block-share-buttons', plugins_url('assets/js/blocks/share-buttons.js', __FILE__), $context_deps, '2.1.0', true);
         register_block_type('multiposter/share-buttons', array(
             'editor_script' => 'multiposter-block-share-buttons',
             'render_callback' => 'multiposter_block_share_render',
@@ -2905,7 +2910,7 @@ function multiposter_register_blocks() {
 
     // Related Vacancies Block
     if (file_exists($blocks_dir . 'related-vacancies.js')) {
-        wp_register_script('multiposter-block-related-vacancies', plugins_url('assets/js/blocks/related-vacancies.js', __FILE__), $context_deps, '2.0.0', true);
+        wp_register_script('multiposter-block-related-vacancies', plugins_url('assets/js/blocks/related-vacancies.js', __FILE__), $context_deps, '2.1.0', true);
         register_block_type('multiposter/related-vacancies', array(
             'editor_script' => 'multiposter-block-related-vacancies',
             'render_callback' => 'multiposter_block_related_render',
@@ -2918,7 +2923,7 @@ function multiposter_register_blocks() {
 
     // Registration Form Block
     if (file_exists($blocks_dir . 'registration-form.js')) {
-        wp_register_script('multiposter-block-registration-form', plugins_url('assets/js/blocks/registration-form.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-i18n'), '2.0.0', true);
+        wp_register_script('multiposter-block-registration-form', plugins_url('assets/js/blocks/registration-form.js', __FILE__), array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-i18n'), '2.1.0', true);
         register_block_type('multiposter/registration-form', array(
             'editor_script' => 'multiposter-block-registration-form',
             'render_callback' => 'multiposter_block_registration_form_render',
