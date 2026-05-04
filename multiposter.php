@@ -1228,13 +1228,36 @@ function multiposter_attach_images_to_post($media_items, $post_id) {
     }
 
     $new_media_ids = array();
-    $is_first = true;
+    foreach ($media_items as $item) {
+        if (empty($item['id']) || empty($item['url'])) continue;
+        $new_media_ids[] = (string) $item['id'];
+    }
 
+    // Remove attachments no longer in the API response BEFORE sideloading new
+    // ones, so that has_post_thumbnail() below reflects the post-removal state
+    // and the first new image can be promoted to featured when the old
+    // featured image was the one being replaced.
+    $removed_ids = array_diff($existing_media_ids, $new_media_ids);
+    if (!empty($removed_ids)) {
+        $existing_attachments = get_posts(array(
+            'post_type' => 'attachment',
+            'post_parent' => $post_id,
+            'posts_per_page' => -1,
+            'post_status' => 'any',
+        ));
+        foreach ($existing_attachments as $att) {
+            $att_media_id = get_post_meta($att->ID, 'multiposter_media_id', true);
+            if ($att_media_id && in_array($att_media_id, $removed_ids)) {
+                wp_delete_attachment($att->ID, true);
+            }
+        }
+    }
+
+    $is_first = true;
     foreach ($media_items as $item) {
         if (empty($item['id']) || empty($item['url'])) continue;
 
         $api_media_id = (string) $item['id'];
-        $new_media_ids[] = $api_media_id;
 
         // Skip if already imported
         if (in_array($api_media_id, $existing_media_ids)) {
@@ -1259,23 +1282,6 @@ function multiposter_attach_images_to_post($media_items, $post_id) {
         }
 
         $is_first = false;
-    }
-
-    // Remove attachments no longer in the API response
-    $removed_ids = array_diff($existing_media_ids, $new_media_ids);
-    if (!empty($removed_ids)) {
-        $existing_attachments = get_posts(array(
-            'post_type' => 'attachment',
-            'post_parent' => $post_id,
-            'posts_per_page' => -1,
-            'post_status' => 'any',
-        ));
-        foreach ($existing_attachments as $att) {
-            $att_media_id = get_post_meta($att->ID, 'multiposter_media_id', true);
-            if ($att_media_id && in_array($att_media_id, $removed_ids)) {
-                wp_delete_attachment($att->ID, true);
-            }
-        }
     }
 
     update_post_meta($post_id, 'multiposter_media_ids', $new_media_ids);
