@@ -47,16 +47,36 @@ Enter your Multiposter API key to enable automatic vacancy synchronisation. Vaca
 4. (Optional) Enter your Multiposter API key to enable automatic sync.
 5. Visit Settings > Permalinks and click "Save Changes" to register the vacancy URL slug.
 
+== Source code ==
+
+The full, non-minified source code for this plugin (including the un-compiled JavaScript for the Gutenberg blocks) is publicly available at:
+
+https://github.com/mooxnl/multiposter-wp-plugin
+
+The compiled block scripts shipped under `assets/js/blocks/` are generated from the matching files in `src/blocks/` using `@wordpress/scripts`.
+
+To build the block assets locally:
+
+1. Clone the repository.
+2. Install dependencies: `npm install`
+3. Build the production bundles: `npm run build`
+4. For development with file watching: `npm run start`
+
+The build writes the compiled JavaScript and `*.asset.php` files to `assets/js/blocks/`.
+
 == External services ==
 
 This plugin connects to external services under specific conditions. The plugin is fully functional in standalone mode without contacting any of these services.
 
 **Multiposter API (app.jobit.nl)**
 
-Used to synchronize vacancies and, optionally, to submit job applications. Only contacted when a Multiposter API key is configured in the plugin settings.
+Used to synchronize vacancies and, optionally, to submit job applications and candidate registrations. Only contacted when a Multiposter API key is configured in the plugin settings.
 
-* What is sent: the configured API key, vacancy fetch parameters (channel ID, page, limit), and — when a visitor submits the application form with the API option enabled — the form fields the visitor provides (name, email, phone, message, uploaded CV, vacancy ID).
-* When it is sent: on the scheduled vacancy sync interval, on manual re-sync from the admin screen, and when a visitor submits the application form.
+* What is sent — vacancy synchronisation: the configured API key and vacancy fetch parameters (channel ID, page, limit). No visitor data.
+* What is sent — application form submissions (when "API" or "API and email" is selected for the application form): the configured API key and the form fields the visitor provides (name, email, phone, message, uploaded CV, vacancy ID).
+* What is sent — registration form submissions (when "API" or "API and email" is selected for the registration form): the configured API key and the form fields the visitor provides (first name, last name, email, phone, motivation, optional uploaded CV).
+* When it is sent: on the scheduled vacancy sync interval, on manual re-sync from the admin screen, when a visitor submits the application form, and when a visitor submits the registration form.
+* Endpoints contacted: `https://app.jobit.nl/api/vacancies/channel/{channel_id}` (vacancy sync) and `https://app.jobit.nl/api/candidates` (job applications and candidate registrations, distinguished by a `type` field in the request body).
 * Service: operated by Multiposter.
 * Terms of service: https://multiposter.nl/informatie/voorwaarden
 * Privacy policy: https://multiposter.nl/informatie/privacy-policy

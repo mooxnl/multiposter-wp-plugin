@@ -443,7 +443,6 @@ function multiposter_settings_callback() {
     ?>
     <div class="wrap">
         <h1><?php esc_html_e('Multiposter instellingen', 'multiposter'); ?></h1>
-        <style>#full-screen-loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; } .loading-spinner { font-size: 1.5em; color: #fff; }</style>
 
         <nav class="nav-tab-wrapper">
             <?php foreach ($tabs as $tab_key => $tab_label): ?>
@@ -1031,14 +1030,26 @@ function multiposter_sanitize_sortable_config($value) {
 }
 
 function multiposter_sanitize_api_key($value) {
+    if (!is_string($value)) {
+        return '';
+    }
     $value = trim($value);
     if ($value === '') {
         return '';
     }
+    // Masked input from the settings UI — keep the existing stored key.
     if (strpos($value, '••••') === 0) {
         return get_option('multiposter_api_key', '');
     }
-    return sanitize_text_field($value);
+    // Strip control characters (CR/LF/tab/etc.) without altering otherwise
+    // valid token characters. Avoid sanitize_text_field() here: it removes
+    // percent-octets and tag-like sequences that may legitimately appear in
+    // opaque API tokens.
+    $value = preg_replace('/[\x00-\x1F\x7F]/', '', $value);
+    if (strlen($value) > 512) {
+        $value = substr($value, 0, 512);
+    }
+    return $value;
 }
 
 add_action('update_option_multiposter_favorites_enabled', function() { multiposter_invalidate_caches(); });
@@ -1950,7 +1961,7 @@ function multiposter_single_content($content) {
 
         // Title + favorite button header
         $custom_content .= '<div class="multiposter-detail__header">';
-        $custom_content .= '<h3 class="multiposter-detail__title">' . get_the_title($job_id) . '</h3>';
+        $custom_content .= '<h3 class="multiposter-detail__title">' . esc_html(get_the_title($job_id)) . '</h3>';
         if (get_option('multiposter_favorites_enabled', 1)) {
             $custom_content .= '<button type="button" class="multiposter-favorite-btn multiposter-favorite-btn--detail" data-id="' . esc_attr($job_id) . '" aria-label="' . esc_attr__('Favoriet', 'multiposter') . '">' . multiposter_icon('heart') . '</button>';
         }
