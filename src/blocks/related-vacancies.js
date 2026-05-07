@@ -5,7 +5,7 @@ import { __ } from '@wordpress/i18n';
 import { useSelect } from '@wordpress/data';
 
 registerBlockType('multiposter/related-vacancies', {
-    title: __('Related Vacancies', 'multiposter'),
+    title: __('Related Vacancies', 'jobit-vacancies-for-multiposter'),
     icon: 'networking',
     category: 'widgets',
     attributes: {
@@ -18,20 +18,20 @@ registerBlockType('multiposter/related-vacancies', {
             postId: select('core/editor').getCurrentPostId(),
             postType: select('core/editor').getCurrentPostType(),
         }));
-        const effectiveId = attributes.vacancyId || (postType === 'vacatures' ? postId : '');
+        const effectiveId = attributes.vacancyId || (postType === 'multiposter_vacancy' ? postId : '');
 
         return (
             <div {...blockProps}>
                 <InspectorControls>
-                    <PanelBody title={__('Settings', 'multiposter')}>
+                    <PanelBody title={__('Settings', 'jobit-vacancies-for-multiposter')}>
                         <TextControl
-                            label={__('Vacancy ID (optional override)', 'multiposter')}
+                            label={__('Vacancy ID (optional override)', 'jobit-vacancies-for-multiposter')}
                             value={attributes.vacancyId}
                             onChange={(val) => setAttributes({ vacancyId: val })}
-                            help={__('Leave empty to auto-detect from current post.', 'multiposter')}
+                            help={__('Leave empty to auto-detect from current post.', 'jobit-vacancies-for-multiposter')}
                         />
                         <RangeControl
-                            label={__('Number of vacancies', 'multiposter')}
+                            label={__('Number of vacancies', 'jobit-vacancies-for-multiposter')}
                             value={attributes.count}
                             onChange={(val) => setAttributes({ count: val })}
                             min={1}
@@ -40,11 +40,11 @@ registerBlockType('multiposter/related-vacancies', {
                     </PanelBody>
                 </InspectorControls>
                 <div style={{ padding: '20px', background: '#f0f0f0', textAlign: 'center' }}>
-                    <strong>{__('Related Vacancies', 'multiposter')}</strong>
+                    <strong>{__('Related Vacancies', 'jobit-vacancies-for-multiposter')}</strong>
                     {effectiveId ? (
-                        <p>{__('Vacancy ID:', 'multiposter')} {effectiveId} {!attributes.vacancyId && postType === 'vacatures' ? __('(auto-detected)', 'multiposter') : ''} — {__('Count:', 'multiposter')} {attributes.count}</p>
+                        <p>{__('Vacancy ID:', 'jobit-vacancies-for-multiposter')} {effectiveId} {!attributes.vacancyId && postType === 'multiposter_vacancy' ? __('(auto-detected)', 'jobit-vacancies-for-multiposter') : ''} — {__('Count:', 'jobit-vacancies-for-multiposter')} {attributes.count}</p>
                     ) : (
-                        <p style={{ color: '#cc0000' }}>{__('No vacancy detected. Edit a vacatures post or set a vacancy ID manually.', 'multiposter')}</p>
+                        <p style={{ color: '#cc0000' }}>{__('No vacancy detected. Edit a vacancy post or set a vacancy ID manually.', 'jobit-vacancies-for-multiposter')}</p>
                     )}
                 </div>
             </div>

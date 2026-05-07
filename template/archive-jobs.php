@@ -4,10 +4,10 @@ get_header();
 
 // Filter config
 $multiposter_default_filters = array(
-    array('id' => 'keyword', 'label' => __('Zoeken', 'multiposter'), 'enabled' => 1),
-    array('id' => 'position', 'label' => __('Functie', 'multiposter'), 'enabled' => 1),
-    array('id' => 'city', 'label' => __('Plaats', 'multiposter'), 'enabled' => 1),
-    array('id' => 'salary', 'label' => __('Salaris', 'multiposter'), 'enabled' => 1),
+    array('id' => 'keyword', 'label' => __('Zoeken', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+    array('id' => 'position', 'label' => __('Functie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+    array('id' => 'city', 'label' => __('Plaats', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+    array('id' => 'salary', 'label' => __('Salaris', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
 );
 $multiposter_filters_config = get_option('multiposter_filters_config', $multiposter_default_filters);
 if (!is_array($multiposter_filters_config)) {
@@ -25,7 +25,7 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
 
     <aside class="multiposter-archive__filters">
         <button type="button" class="multiposter-filter-toggle" aria-expanded="false" aria-controls="multiposter-filter-form">
-            <?php esc_html_e('Filters', 'multiposter'); ?>
+            <?php esc_html_e('Filters', 'jobit-vacancies-for-multiposter'); ?>
             <svg class="multiposter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/></svg>
         </button>
         <form id="multiposter-filter-form">
@@ -35,16 +35,16 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
                 switch ($multiposter_filter['id']):
                     case 'keyword': ?>
                         <div class="multiposter-filter-group">
-                            <label for="multiposter-keyword"><?php esc_html_e('Zoeken', 'multiposter'); ?></label>
-                            <input type="text" id="multiposter-keyword" name="keyword" placeholder="<?php esc_attr_e('Zoeken...', 'multiposter'); ?>">
+                            <label for="multiposter-keyword"><?php esc_html_e('Zoeken', 'jobit-vacancies-for-multiposter'); ?></label>
+                            <input type="text" id="multiposter-keyword" name="keyword" placeholder="<?php esc_attr_e('Zoeken...', 'jobit-vacancies-for-multiposter'); ?>">
                         </div>
                     <?php break;
 
                     case 'position': ?>
                         <fieldset class="multiposter-filter-group">
-                            <legend><?php esc_html_e('Functie', 'multiposter'); ?></legend>
+                            <legend><?php esc_html_e('Functie', 'jobit-vacancies-for-multiposter'); ?></legend>
                             <?php
-                            $multiposter_terms = get_terms(array('taxonomy' => 'position', 'hide_empty' => true));
+                            $multiposter_terms = get_terms(array('taxonomy' => 'multiposter_position', 'hide_empty' => true));
                             if (!is_wp_error($multiposter_terms) && !empty($multiposter_terms)): ?>
                                 <ul class="multiposter-checkbox-list">
                                     <?php foreach ($multiposter_terms as $term): ?>
@@ -62,9 +62,9 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
 
                     case 'city': ?>
                         <fieldset class="multiposter-filter-group">
-                            <legend><?php esc_html_e('Plaats', 'multiposter'); ?></legend>
+                            <legend><?php esc_html_e('Plaats', 'jobit-vacancies-for-multiposter'); ?></legend>
                             <?php
-                            $multiposter_terms = get_terms(array('taxonomy' => 'cities', 'hide_empty' => true));
+                            $multiposter_terms = get_terms(array('taxonomy' => 'multiposter_city', 'hide_empty' => true));
                             if (!is_wp_error($multiposter_terms) && !empty($multiposter_terms)): ?>
                                 <ul class="multiposter-checkbox-list">
                                     <?php foreach ($multiposter_terms as $term): ?>
@@ -82,10 +82,10 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
 
                     case 'salary': ?>
                         <div class="multiposter-filter-group">
-                            <label><?php esc_html_e('Salaris', 'multiposter'); ?></label>
+                            <label><?php esc_html_e('Salaris', 'jobit-vacancies-for-multiposter'); ?></label>
                             <div class="multiposter-salary-range">
-                                <input type="number" name="salary_min" placeholder="<?php esc_attr_e('Min', 'multiposter'); ?>">
-                                <input type="number" name="salary_max" placeholder="<?php esc_attr_e('Max', 'multiposter'); ?>">
+                                <input type="number" name="salary_min" placeholder="<?php esc_attr_e('Min', 'jobit-vacancies-for-multiposter'); ?>">
+                                <input type="number" name="salary_max" placeholder="<?php esc_attr_e('Max', 'jobit-vacancies-for-multiposter'); ?>">
                             </div>
                         </div>
                     <?php break;
@@ -97,7 +97,7 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
             <div class="multiposter-filter-group multiposter-favorites-filter">
                 <label>
                     <input type="checkbox" id="multiposter-show-favorites">
-                    <span class="multiposter-heart-icon">&#9829;</span> <?php esc_html_e('Alleen favorieten', 'multiposter'); ?>
+                    <span class="multiposter-heart-icon">&#9829;</span> <?php esc_html_e('Alleen favorieten', 'jobit-vacancies-for-multiposter'); ?>
                 </label>
             </div>
             <?php endif; ?>
@@ -132,7 +132,7 @@ $multiposter_columns = intval(get_option('multiposter_archive_columns', 1));
                     $multiposter_opt = intval($multiposter_opt);
                     if ($multiposter_opt <= 0) continue;
                 ?>
-                    <option value="<?php echo (int) $multiposter_opt; ?>" <?php selected($multiposter_opt, $multiposter_default_per_page); ?>><?php echo (int) $multiposter_opt; ?> <?php esc_html_e('per pagina', 'multiposter'); ?></option>
+                    <option value="<?php echo (int) $multiposter_opt; ?>" <?php selected($multiposter_opt, $multiposter_default_per_page); ?>><?php echo (int) $multiposter_opt; ?> <?php esc_html_e('per pagina', 'jobit-vacancies-for-multiposter'); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>

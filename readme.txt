@@ -3,7 +3,7 @@ Contributors: multiposternl
 Tags: vacancies, jobs, recruitment, job board, vacatures
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 2.1
+Stable tag: 2.2
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -101,6 +101,13 @@ No. The plugin works standalone without an API key. You can create and manage va
 Applications are sent via email to the configured notification address, or to the site admin email as a fallback.
 
 == Changelog ==
+
+= 2.2 =
+* Renamed text domain to match the WordPress.org plugin slug
+* Prefixed custom post type, taxonomies and shortcodes with `multiposter_` to avoid collisions; legacy `[jobs_archive]` and `[job_single]` shortcodes still work
+* Added one-time migration that updates existing posts and terms on first admin load after upgrade — no manual action required
+* Hardened API-key sanitization, escaped vacancy title in the `the_content` filter callback, moved the inline admin loading-overlay style into the enqueued stylesheet
+* Documented the candidate registration endpoint and the public source repository in the readme
 
 = 2.1 =
 * Documented external services (Multiposter API, social share endpoints)

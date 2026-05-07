@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Multiposter
- * Version:           2.1
- * Text Domain:       multiposter
+ * Version:           2.2
+ * Text Domain:       jobit-vacancies-for-multiposter
  * Domain Path:       /languages
  * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
  * Author:            Multiposter
@@ -29,12 +29,30 @@ function multiposter_migrate_options() {
     }
 }
 
+// One-time migration of CPT and taxonomy identifiers introduced in 2.2.
+// Old: 'vacatures' / 'cities' / 'position'.
+// New: 'multiposter_vacancy' / 'multiposter_city' / 'multiposter_position'.
+// User-facing URLs (rewrite slugs) and option defaults remain unchanged.
+add_action('admin_init', 'multiposter_maybe_migrate_v22_identifiers', 1);
+function multiposter_maybe_migrate_v22_identifiers() {
+    if (get_option('multiposter_migration_v22') === 'done') return;
+    if (!current_user_can('manage_options')) return;
+
+    global $wpdb;
+    $wpdb->update($wpdb->posts, array('post_type' => 'multiposter_vacancy'), array('post_type' => 'vacatures'));
+    $wpdb->update($wpdb->term_taxonomy, array('taxonomy' => 'multiposter_city'), array('taxonomy' => 'cities'));
+    $wpdb->update($wpdb->term_taxonomy, array('taxonomy' => 'multiposter_position'), array('taxonomy' => 'position'));
+
+    flush_rewrite_rules();
+    update_option('multiposter_migration_v22', 'done');
+}
+
 function multiposter_check_rate_limit($action) {
     $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field(wp_unslash($_SERVER['REMOTE_ADDR'])) : '';
     $ttl = apply_filters('multiposter_rate_limit_ttl', 60, $action);
     $key = 'multiposter_rl_' . md5($action . '_' . $ip);
     if (get_transient($key)) {
-        wp_send_json_error(array('message' => __('Te veel verzoeken. Probeer het later opnieuw.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Te veel verzoeken. Probeer het later opnieuw.', 'jobit-vacancies-for-multiposter')));
     }
     set_transient($key, 1, $ttl);
 }
@@ -67,9 +85,9 @@ add_action('admin_enqueue_scripts', 'multiposter_enqueue_admin_scripts');
 
 function multiposter_should_enqueue() {
     if (apply_filters('multiposter_force_enqueue', false)) return true;
-    if (is_post_type_archive('vacatures')) return true;
-    if (is_tax('cities') || is_tax('position')) return true;
-    if (is_singular('vacatures')) return true;
+    if (is_post_type_archive('multiposter_vacancy')) return true;
+    if (is_tax('multiposter_city') || is_tax('multiposter_position')) return true;
+    if (is_singular('multiposter_vacancy')) return true;
     if (is_singular() || is_page()) {
         $post = get_post();
         if ($post) {
@@ -83,6 +101,7 @@ function multiposter_should_enqueue() {
             foreach ($blocks as $block) {
                 if (has_block($block, $post)) return true;
             }
+            if (has_shortcode($post->post_content, 'multiposter_archive') || has_shortcode($post->post_content, 'multiposter_single')) return true;
             if (has_shortcode($post->post_content, 'jobs_archive') || has_shortcode($post->post_content, 'job_single')) return true;
         }
     }
@@ -112,8 +131,8 @@ function multiposter_enqueue_frontend_scripts() {
         'ajax_url' => admin_url('admin-ajax.php'),
         'archive_nonce' => wp_create_nonce('multiposter_archive'),
         'i18n' => array(
-            'previous' => __('&laquo; Vorige', 'multiposter'),
-            'next' => __('Volgende &raquo;', 'multiposter'),
+            'previous' => __('&laquo; Vorige', 'jobit-vacancies-for-multiposter'),
+            'next' => __('Volgende &raquo;', 'jobit-vacancies-for-multiposter'),
         ),
     ));
 }
@@ -123,20 +142,20 @@ add_action('wp_enqueue_scripts', 'multiposter_enqueue_frontend_scripts');
 
 function multiposter_register_cpt() {
 	$labels = array(
-		'name' => __('Multiposter', 'multiposter'),
-		'singular_name' => __('Multiposter', 'multiposter'),
-		'menu_name' => __('Multiposter', 'multiposter'),
-		'all_items' => __('Alle vacatures', 'multiposter'),
-		'add_new_item' => __('Nieuwe vacature toevoegen', 'multiposter'),
-		'add_new' => __('Nieuw', 'multiposter'),
-		'edit_item' => __('Vacature bewerken', 'multiposter'),
-		'update_item' => __('Update vacature', 'multiposter'),
-		'view_item' => __('Bekijk vacature', 'multiposter'),
+		'name' => __('Multiposter', 'jobit-vacancies-for-multiposter'),
+		'singular_name' => __('Multiposter', 'jobit-vacancies-for-multiposter'),
+		'menu_name' => __('Multiposter', 'jobit-vacancies-for-multiposter'),
+		'all_items' => __('Alle vacatures', 'jobit-vacancies-for-multiposter'),
+		'add_new_item' => __('Nieuwe vacature toevoegen', 'jobit-vacancies-for-multiposter'),
+		'add_new' => __('Nieuw', 'jobit-vacancies-for-multiposter'),
+		'edit_item' => __('Vacature bewerken', 'jobit-vacancies-for-multiposter'),
+		'update_item' => __('Update vacature', 'jobit-vacancies-for-multiposter'),
+		'view_item' => __('Bekijk vacature', 'jobit-vacancies-for-multiposter'),
 	);
 	$vacancy_slug = get_option('multiposter_vacancy_slug', 'vacatures');
 	$args = array(
-		'label' => __('Multiposter', 'multiposter'),
-		'description' => __('Vacature overzicht Multiposter', 'multiposter'),
+		'label' => __('Multiposter', 'jobit-vacancies-for-multiposter'),
+		'description' => __('Vacature overzicht Multiposter', 'jobit-vacancies-for-multiposter'),
 		'labels' => $labels,
 		'supports' => array('title', 'editor', 'thumbnail'),
 		'public' => true,
@@ -149,16 +168,16 @@ function multiposter_register_cpt() {
         'show_in_rest' => true,
         'map_meta_cap' => true,
 	);
-	register_post_type('vacatures', $args);
+	register_post_type('multiposter_vacancy', $args);
 }
 add_action('init', 'multiposter_register_cpt', 0);
 
 function multiposter_add_meta_box() {
     add_meta_box(
         'job_details_meta_box', 
-        __('Vacature details', 'multiposter'),
-        'multiposter_meta_box_callback', 
-        'vacatures',
+        __('Vacature details', 'jobit-vacancies-for-multiposter'),
+        'multiposter_meta_box_callback',
+        'multiposter_vacancy',
         'normal',
         'high'
     );
@@ -192,94 +211,94 @@ function multiposter_meta_box_callback($post) {
     echo '<div class="job-details-container">';
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="short_description">' . esc_html__('Functieomschrijving', 'multiposter') . '</label>';
+            echo '<label for="short_description">' . esc_html__('Functieomschrijving', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<textarea id="short_description" name="short_description" rows="4">' . esc_textarea($short_description) . '</textarea>';
         echo '</div>';
 
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="requirements">' . esc_html__('Functie eisen', 'multiposter') . '</label>';
+            echo '<label for="requirements">' . esc_html__('Functie eisen', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<textarea id="requirements" name="requirements" rows="4">' . esc_textarea($requirements) . '</textarea>';
         echo '</div>';
 
         echo '<div class="job-details-field col-1">';
-            echo '<label for="offer">' . esc_html__('Wat bieden wij', 'multiposter') . '</label>';
+            echo '<label for="offer">' . esc_html__('Wat bieden wij', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<textarea id="offer" name="offer" rows="4">' . esc_textarea($offer) . '</textarea>';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="city">' . esc_html__('Werklocatie', 'multiposter') . '</label>';
+            echo '<label for="city">' . esc_html__('Werklocatie', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="city" name="city" value="' . esc_attr($city) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="number">' . esc_html__('Vacaturenummer', 'multiposter') . '</label>';
+            echo '<label for="number">' . esc_html__('Vacaturenummer', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="number" name="number" value="' . esc_attr($number) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="date">' . esc_html__('Vacaturedatum', 'multiposter') . '</label>';
+            echo '<label for="date">' . esc_html__('Vacaturedatum', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="date" name="date" value="' . esc_attr($date) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="education">' . esc_html__('Opleidingsniveau', 'multiposter') . '</label>';
+            echo '<label for="education">' . esc_html__('Opleidingsniveau', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="education" name="education" value="' . esc_attr($education) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="career_level">' . esc_html__('Carrièreniveau', 'multiposter') . '</label>';
+            echo '<label for="career_level">' . esc_html__('Carrièreniveau', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="career_level" name="career_level" value="' . esc_attr($career_level) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="employment">' . esc_html__('Dienstverband', 'multiposter') . '</label>';
+            echo '<label for="employment">' . esc_html__('Dienstverband', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="employment" name="employment" value="' . esc_attr($employment) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="hours">' . esc_html__('Uren', 'multiposter') . '</label>';
+            echo '<label for="hours">' . esc_html__('Uren', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="hours" name="hours" value="' . esc_attr($hours) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="contract">' . esc_html__('Contract', 'multiposter') . '</label>';
+            echo '<label for="contract">' . esc_html__('Contract', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="contract" name="contract" value="' . esc_attr($contract) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="salary">' . esc_html__('Salaris', 'multiposter') . '</label>';
+            echo '<label for="salary">' . esc_html__('Salaris', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="salary" name="salary" value="' . esc_attr($salary) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="email">' . esc_html__('E-mailadres', 'multiposter') . '</label>';
+            echo '<label for="email">' . esc_html__('E-mailadres', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="email" name="email" value="' . esc_attr($email) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="contact">' . esc_html__('Behandelaar', 'multiposter') . '</label>';
+            echo '<label for="contact">' . esc_html__('Behandelaar', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="contact" name="contact" value="' . esc_attr($contact) . '">';
         echo '</div>';
 
     echo '</div>';
 
-    echo '<h2 class="jobs_page_heading">' . esc_html__('Vestiging', 'multiposter') . '</h2>';
+    echo '<h2 class="jobs_page_heading">' . esc_html__('Vestiging', 'jobit-vacancies-for-multiposter') . '</h2>';
 
     echo '<div class="job-details-container office-section">';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_city">' . esc_html__('Plaats vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_city">' . esc_html__('Plaats vestiging', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="office_city" name="office_city" value="' . esc_attr($office_city) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_email">' . esc_html__('E-mailadres vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_email">' . esc_html__('E-mailadres vestiging', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="office_email" name="office_email" value="' . esc_attr($office_email) . '">';
         echo '</div>';
 
         echo '<div class="job-details-field">';
-            echo '<label for="office_phone">' . esc_html__('Telefoon vestiging', 'multiposter') . '</label>';
+            echo '<label for="office_phone">' . esc_html__('Telefoon vestiging', 'jobit-vacancies-for-multiposter') . '</label>';
             echo '<input type="text" id="office_phone" name="office_phone" value="' . esc_attr($office_phone) . '">';
         echo '</div>';
 
@@ -341,7 +360,7 @@ function multiposter_save_meta_box($post_id) {
 add_action('save_post', 'multiposter_save_meta_box');
 
 // Auto-set date meta on new vacancy creation
-add_action('save_post_vacatures', 'multiposter_set_default_date', 20, 2);
+add_action('save_post_multiposter_vacancy', 'multiposter_set_default_date', 20, 2);
 function multiposter_set_default_date($post_id, $post) {
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     $date = get_post_meta($post_id, 'date', true);
@@ -351,22 +370,22 @@ function multiposter_set_default_date($post_id, $post) {
 }
 
 // Feature 3: Admin List Columns
-add_filter('manage_vacatures_posts_columns', 'multiposter_admin_columns');
+add_filter('manage_multiposter_vacancy_posts_columns', 'multiposter_admin_columns');
 function multiposter_admin_columns($columns) {
     $new_columns = array();
     foreach ($columns as $key => $value) {
         $new_columns[$key] = $value;
         if ($key === 'title') {
-            $new_columns['multiposter_city'] = __('Plaats', 'multiposter');
-            $new_columns['multiposter_hours'] = __('Uren', 'multiposter');
-            $new_columns['multiposter_salary'] = __('Salaris', 'multiposter');
-            $new_columns['multiposter_id_col'] = __('Multiposter ID', 'multiposter');
+            $new_columns['multiposter_city'] = __('Plaats', 'jobit-vacancies-for-multiposter');
+            $new_columns['multiposter_hours'] = __('Uren', 'jobit-vacancies-for-multiposter');
+            $new_columns['multiposter_salary'] = __('Salaris', 'jobit-vacancies-for-multiposter');
+            $new_columns['multiposter_id_col'] = __('Multiposter ID', 'jobit-vacancies-for-multiposter');
         }
     }
     return $new_columns;
 }
 
-add_action('manage_vacatures_posts_custom_column', 'multiposter_admin_column_content', 10, 2);
+add_action('manage_multiposter_vacancy_posts_custom_column', 'multiposter_admin_column_content', 10, 2);
 function multiposter_admin_column_content($column, $post_id) {
     switch ($column) {
         case 'multiposter_city':
@@ -384,7 +403,7 @@ function multiposter_admin_column_content($column, $post_id) {
     }
 }
 
-add_filter('manage_edit-vacatures_sortable_columns', 'multiposter_sortable_columns');
+add_filter('manage_edit-multiposter_vacancy_sortable_columns', 'multiposter_sortable_columns');
 function multiposter_sortable_columns($columns) {
     $columns['multiposter_city'] = 'multiposter_city';
     $columns['multiposter_salary'] = 'multiposter_salary';
@@ -408,7 +427,7 @@ function multiposter_admin_column_orderby($query) {
 add_action('admin_notices', 'multiposter_sync_error_notice');
 function multiposter_sync_error_notice() {
     $screen = get_current_screen();
-    if (!$screen || $screen->post_type !== 'vacatures') return;
+    if (!$screen || $screen->post_type !== 'multiposter_vacancy') return;
     $last_sync = get_option('multiposter_last_sync');
     if ($last_sync && isset($last_sync['status']) && $last_sync['status'] === 'error') {
         echo '<div class="notice notice-error"><p><strong>Multiposter:</strong> ' . esc_html($last_sync['message']) . ' (' . esc_html($last_sync['time']) . ')</p></div>';
@@ -418,9 +437,9 @@ function multiposter_sync_error_notice() {
 add_action('admin_menu', 'multiposter_settings_page');
 function multiposter_settings_page() {
     add_submenu_page(
-        'edit.php?post_type=vacatures',
-        __('Instellingen', 'multiposter'),
-        __('Instellingen', 'multiposter'),
+        'edit.php?post_type=multiposter_vacancy',
+        __('Instellingen', 'jobit-vacancies-for-multiposter'),
+        __('Instellingen', 'jobit-vacancies-for-multiposter'),
         'manage_options',
         'vacatures__settings',
         'multiposter_settings_callback'
@@ -431,27 +450,27 @@ function multiposter_settings_callback() {
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab navigation on WP settings page, no data modification.
     $active_tab = isset($_GET['tab']) ? sanitize_key(wp_unslash($_GET['tab'])) : 'general';
     $tabs = array(
-        'general'   => __('Algemeen', 'multiposter'),
-        'archive'   => __('Archief', 'multiposter'),
-        'detail'    => __('Detailpagina', 'multiposter'),
-        'form'      => __('Sollicitatieformulier', 'multiposter'),
-        'registration' => __('Inschrijfformulier', 'multiposter'),
-        'seo'       => __('SEO', 'multiposter'),
-        'media'     => __('Afbeeldingen', 'multiposter'),
-        'reference' => __('Shortcodes & Blocks', 'multiposter'),
+        'general'   => __('Algemeen', 'jobit-vacancies-for-multiposter'),
+        'archive'   => __('Archief', 'jobit-vacancies-for-multiposter'),
+        'detail'    => __('Detailpagina', 'jobit-vacancies-for-multiposter'),
+        'form'      => __('Sollicitatieformulier', 'jobit-vacancies-for-multiposter'),
+        'registration' => __('Inschrijfformulier', 'jobit-vacancies-for-multiposter'),
+        'seo'       => __('SEO', 'jobit-vacancies-for-multiposter'),
+        'media'     => __('Afbeeldingen', 'jobit-vacancies-for-multiposter'),
+        'reference' => __('Shortcodes & Blocks', 'jobit-vacancies-for-multiposter'),
     );
     ?>
     <div class="wrap">
-        <h1><?php esc_html_e('Multiposter instellingen', 'multiposter'); ?></h1>
+        <h1><?php esc_html_e('Multiposter instellingen', 'jobit-vacancies-for-multiposter'); ?></h1>
 
         <nav class="nav-tab-wrapper">
             <?php foreach ($tabs as $tab_key => $tab_label): ?>
-                <a href="?post_type=vacatures&page=vacatures__settings&tab=<?php echo esc_attr($tab_key); ?>" class="nav-tab <?php echo esc_attr($active_tab === $tab_key ? 'nav-tab-active' : ''); ?>"><?php echo esc_html($tab_label); ?></a>
+                <a href="?post_type=multiposter_vacancy&page=vacatures__settings&tab=<?php echo esc_attr($tab_key); ?>" class="nav-tab <?php echo esc_attr($active_tab === $tab_key ? 'nav-tab-active' : ''); ?>"><?php echo esc_html($tab_label); ?></a>
             <?php endforeach; ?>
         </nav>
 
         <?php if (!get_option('multiposter_api_key')): ?>
-            <div class="notice notice-info"><p><?php esc_html_e('Configureer je Multiposter API-token om automatische vacature synchronisatie in te schakelen. Zonder API-token werkt de plugin in standalone modus: je kunt handmatig vacatures aanmaken en sollicitaties worden per e-mail verzonden.', 'multiposter'); ?></p></div>
+            <div class="notice notice-info"><p><?php esc_html_e('Configureer je Multiposter API-token om automatische vacature synchronisatie in te schakelen. Zonder API-token werkt de plugin in standalone modus: je kunt handmatig vacatures aanmaken en sollicitaties worden per e-mail verzonden.', 'jobit-vacancies-for-multiposter'); ?></p></div>
         <?php endif; ?>
 
         <form method="post" action="options.php" novalidate>
@@ -466,14 +485,14 @@ function multiposter_settings_callback() {
                 <tr valign="top">
                     <td colspan="2" style="padding-left: 0;">
                         <p class="description">
-                            <strong><?php esc_html_e('Standalone modus', 'multiposter'); ?></strong>: <?php esc_html_e('Maak handmatig vacatures aan en ontvang sollicitaties per e-mail.', 'multiposter'); ?><br>
-                            <strong><?php esc_html_e('Multiposter integratie', 'multiposter'); ?></strong>: <?php esc_html_e('Vul een API-token in om vacatures automatisch te synchroniseren en sollicitaties naar de Multiposter API te versturen.', 'multiposter'); ?>
+                            <strong><?php esc_html_e('Standalone modus', 'jobit-vacancies-for-multiposter'); ?></strong>: <?php esc_html_e('Maak handmatig vacatures aan en ontvang sollicitaties per e-mail.', 'jobit-vacancies-for-multiposter'); ?><br>
+                            <strong><?php esc_html_e('Multiposter integratie', 'jobit-vacancies-for-multiposter'); ?></strong>: <?php esc_html_e('Vul een API-token in om vacatures automatisch te synchroniseren en sollicitaties naar de Multiposter API te versturen.', 'jobit-vacancies-for-multiposter'); ?>
                         </p>
                     </td>
                 </tr>
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('API-token', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('API-token', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $stored_key = get_option('multiposter_api_key', '');
@@ -481,30 +500,30 @@ function multiposter_settings_callback() {
                         $masked_value = $has_key ? str_repeat('•', 12) . substr($stored_key, -4) : '';
                         ?>
                         <input type="password" name="multiposter_api_key" id="multiposter-api-key-input" value="<?php echo esc_attr($masked_value); ?>" style="width: 40%; min-width: 350px;" autocomplete="off" />
-                        <em><?php esc_html_e('Vul hier je API-token in. Deze vind je via Instellingen > Koppelingen > API tokens', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Vul hier je API-token in. Deze vind je via Instellingen > Koppelingen > API tokens', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <?php if (get_option('multiposter_api_key')): ?>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Vacatures verversen', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Vacatures verversen', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php $api_intervals = get_option('multiposter_api_intervals', 30); ?>
                         <select name="multiposter_api_intervals">
-                            <option value="2" <?php selected($api_intervals, 2); ?>><?php esc_html_e('Iedere 2 minuten', 'multiposter'); ?></option>
-                            <option value="5" <?php selected($api_intervals, 5); ?>><?php esc_html_e('Iedere 5 minuten', 'multiposter'); ?></option>
-                            <option value="10" <?php selected($api_intervals, 10); ?>><?php esc_html_e('Iedere 10 minuten', 'multiposter'); ?></option>
-                            <option value="15" <?php selected($api_intervals, 15); ?>><?php esc_html_e('Iedere 15 minuten', 'multiposter'); ?></option>
-                            <option value="30" <?php selected($api_intervals, 30); ?>><?php esc_html_e('Iedere 30 minuten', 'multiposter'); ?></option>
-                            <option value="45" <?php selected($api_intervals, 45); ?>><?php esc_html_e('Iedere 45 minuten', 'multiposter'); ?></option>
-                            <option value="60" <?php selected($api_intervals, 60); ?>><?php esc_html_e('Iedere 60 minuten', 'multiposter'); ?></option>
-                            <option value="240" <?php selected($api_intervals, 240); ?>><?php esc_html_e('Iedere 4 uur', 'multiposter'); ?></option>
-                            <option value="480" <?php selected($api_intervals, 480); ?>><?php esc_html_e('Iedere 8 uur', 'multiposter'); ?></option>
-                            <option value="1440" <?php selected($api_intervals, 1440); ?>><?php esc_html_e('Iedere 24 uur', 'multiposter'); ?></option>
+                            <option value="2" <?php selected($api_intervals, 2); ?>><?php esc_html_e('Iedere 2 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="5" <?php selected($api_intervals, 5); ?>><?php esc_html_e('Iedere 5 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="10" <?php selected($api_intervals, 10); ?>><?php esc_html_e('Iedere 10 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="15" <?php selected($api_intervals, 15); ?>><?php esc_html_e('Iedere 15 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="30" <?php selected($api_intervals, 30); ?>><?php esc_html_e('Iedere 30 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="45" <?php selected($api_intervals, 45); ?>><?php esc_html_e('Iedere 45 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="60" <?php selected($api_intervals, 60); ?>><?php esc_html_e('Iedere 60 minuten', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="240" <?php selected($api_intervals, 240); ?>><?php esc_html_e('Iedere 4 uur', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="480" <?php selected($api_intervals, 480); ?>><?php esc_html_e('Iedere 8 uur', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="1440" <?php selected($api_intervals, 1440); ?>><?php esc_html_e('Iedere 24 uur', 'jobit-vacancies-for-multiposter'); ?></option>
                         </select>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Laatste synchronisatie', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Laatste synchronisatie', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $last_sync = get_option('multiposter_last_sync');
@@ -514,32 +533,32 @@ function multiposter_settings_callback() {
                             echo esc_html($last_sync['message']) . '<br>';
                             echo '<small>' . esc_html($last_sync['time']) . '</small>';
                         } else {
-                            esc_html_e('Nog niet gesynchroniseerd', 'multiposter');
+                            esc_html_e('Nog niet gesynchroniseerd', 'jobit-vacancies-for-multiposter');
                         }
                         ?>
                     </td>
                 </tr>
                 <?php endif; ?>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Vacature URL slug', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Vacature URL slug', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_vacancy_slug" value="<?php echo esc_attr(get_option('multiposter_vacancy_slug', 'vacatures')); ?>" />
-                        <em><?php esc_html_e('De URL slug voor vacatures (standaard: vacatures)', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('De URL slug voor vacatures (standaard: vacatures)', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Cache duur (seconden)', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Cache duur (seconden)', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="number" name="multiposter_cache_duration" value="<?php echo esc_attr(get_option('multiposter_cache_duration', 3600)); ?>" min="0" />
-                        <em><?php esc_html_e('Slaat de vacature-archiefpagina op in cache om laadtijden te verbeteren. 0 = cache uitgeschakeld.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Slaat de vacature-archiefpagina op in cache om laadtijden te verbeteren. 0 = cache uitgeschakeld.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Favorieten', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Favorieten', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_favorites_enabled" value="0" />
                         <input type="checkbox" name="multiposter_favorites_enabled" value="1" <?php checked(get_option('multiposter_favorites_enabled', 1), 1); ?> />
-                        <em><?php esc_html_e('Toon favorieten functionaliteit', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Toon favorieten functionaliteit', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -550,14 +569,14 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Filters', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Filters', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $default_filters = array(
-                            array('id' => 'keyword', 'label' => __('Zoeken', 'multiposter'), 'enabled' => 1),
-                            array('id' => 'position', 'label' => __('Functie', 'multiposter'), 'enabled' => 1),
-                            array('id' => 'city', 'label' => __('Plaats', 'multiposter'), 'enabled' => 1),
-                            array('id' => 'salary', 'label' => __('Salaris', 'multiposter'), 'enabled' => 1),
+                            array('id' => 'keyword', 'label' => __('Zoeken', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+                            array('id' => 'position', 'label' => __('Functie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+                            array('id' => 'city', 'label' => __('Plaats', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+                            array('id' => 'salary', 'label' => __('Salaris', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
                         );
                         $filters_config = get_option('multiposter_filters_config', $default_filters);
                         if (!is_array($filters_config)) {
@@ -577,31 +596,31 @@ function multiposter_settings_callback() {
                             </li>
                         <?php endforeach; ?>
                         </ul>
-                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om filters te tonen/verbergen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om filters te tonen/verbergen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Standaard per pagina', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Standaard per pagina', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="number" name="multiposter_default_per_page" value="<?php echo esc_attr(get_option('multiposter_default_per_page', 10)); ?>" min="1" max="100" />
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Toon per-pagina selector', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Toon per-pagina selector', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_show_per_page_selector" value="0" />
                         <input type="checkbox" name="multiposter_show_per_page_selector" value="1" <?php checked(get_option('multiposter_show_per_page_selector', 1), 1); ?> />
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Per-pagina opties', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Per-pagina opties', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_per_page_options" value="<?php echo esc_attr(get_option('multiposter_per_page_options', '10,25,50,100')); ?>" />
-                        <em><?php esc_html_e('Komma-gescheiden (bijv. 10,25,50,100)', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Komma-gescheiden (bijv. 10,25,50,100)', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Aantal kolommen', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Aantal kolommen', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <select name="multiposter_archive_columns">
                             <?php $cols = get_option('multiposter_archive_columns', 1); ?>
@@ -612,10 +631,10 @@ function multiposter_settings_callback() {
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Afbeelding in vacaturekaart', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Afbeelding in vacaturekaart', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_card_image_enabled" value="0" />
-                        <label><input type="checkbox" name="multiposter_card_image_enabled" value="1" <?php checked(get_option('multiposter_card_image_enabled', 1), 1); ?> /> <?php esc_html_e('Toon afbeelding', 'multiposter'); ?></label>
+                        <label><input type="checkbox" name="multiposter_card_image_enabled" value="1" <?php checked(get_option('multiposter_card_image_enabled', 1), 1); ?> /> <?php esc_html_e('Toon afbeelding', 'jobit-vacancies-for-multiposter'); ?></label>
                     </td>
                 </tr>
 
@@ -626,22 +645,22 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Maximum aantal afbeeldingen', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Maximum aantal afbeeldingen', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="number" name="multiposter_gallery_max_images" value="<?php echo esc_attr(get_option('multiposter_gallery_max_images', 0)); ?>" min="0" max="50" />
-                        <em><?php esc_html_e('0 = geen limiet', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('0 = geen limiet', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Gerelateerde vacatures', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Gerelateerde vacatures', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_related_enabled" value="0" />
-                        <label><input type="checkbox" name="multiposter_related_enabled" value="1" <?php checked(get_option('multiposter_related_enabled', 1), 1); ?> /> <?php esc_html_e('Inschakelen', 'multiposter'); ?></label><br>
-                        <label><?php esc_html_e('Aantal:', 'multiposter'); ?> <input type="number" name="multiposter_related_count" value="<?php echo esc_attr(get_option('multiposter_related_count', 3)); ?>" min="1" max="12" /></label>
+                        <label><input type="checkbox" name="multiposter_related_enabled" value="1" <?php checked(get_option('multiposter_related_enabled', 1), 1); ?> /> <?php esc_html_e('Inschakelen', 'jobit-vacancies-for-multiposter'); ?></label><br>
+                        <label><?php esc_html_e('Aantal:', 'jobit-vacancies-for-multiposter'); ?> <input type="number" name="multiposter_related_count" value="<?php echo esc_attr(get_option('multiposter_related_count', 3)); ?>" min="1" max="12" /></label>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Gerelateerde vacatures criteria', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Gerelateerde vacatures criteria', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $default_related_criteria = array(
@@ -669,19 +688,19 @@ function multiposter_settings_callback() {
                             </li>
                         <?php endforeach; ?>
                         </ul>
-                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om criteria te tonen/verbergen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om criteria te tonen/verbergen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Deel knoppen', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Deel knoppen', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_share_enabled" value="0" />
                         <input type="checkbox" name="multiposter_share_enabled" value="1" <?php checked(get_option('multiposter_share_enabled', 1), 1); ?> />
-                        <em><?php esc_html_e('Toon deel knoppen op vacature pagina', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Toon deel knoppen op vacature pagina', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Deel knoppen configuratie', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Deel knoppen configuratie', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $default_share_buttons = array(
@@ -709,7 +728,7 @@ function multiposter_settings_callback() {
                             </li>
                         <?php endforeach; ?>
                         </ul>
-                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om knoppen te tonen/verbergen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Sleep om de volgorde te wijzigen, vink aan/uit om knoppen te tonen/verbergen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -720,7 +739,7 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Toon sollicitatieformulier bij vacatures', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Toon sollicitatieformulier bij vacatures', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php $show_form = get_option('multiposter_show_form', 0); ?>
                         <input type="hidden" name="multiposter_show_form" value="0" />
@@ -728,13 +747,13 @@ function multiposter_settings_callback() {
                     </td>
                 </tr>
                 <tr valign="top" id="multiposter-form-fields-row">
-                    <th scope="row"><?php esc_html_e('Formuliervelden', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Formuliervelden', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $default_form_fields = array(
-                            array('id' => 'tel', 'label' => __('Telefoon', 'multiposter'), 'enabled' => 1, 'required' => 0),
-                            array('id' => 'motivation', 'label' => __('Motivatie', 'multiposter'), 'enabled' => 1, 'required' => 0),
-                            array('id' => 'resume', 'label' => __('CV upload', 'multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'tel', 'label' => __('Telefoon', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'motivation', 'label' => __('Motivatie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'resume', 'label' => __('CV upload', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
                         );
                         $form_fields = get_option('multiposter_form_fields', $default_form_fields);
                         if (!is_array($form_fields) || !isset($form_fields[0]['id'])) {
@@ -753,31 +772,31 @@ function multiposter_settings_callback() {
                                 </label>
                                 <label style="margin-left:10px;">
                                     <input type="checkbox" name="multiposter_form_fields[<?php echo (int) $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
-                                    <?php esc_html_e('Verplicht', 'multiposter'); ?>
+                                    <?php esc_html_e('Verplicht', 'jobit-vacancies-for-multiposter'); ?>
                                 </label>
                             </li>
                         <?php endforeach; ?>
                         </ul>
-                        <em><?php esc_html_e('Voornaam, achternaam en e-mail zijn altijd verplicht. Sleep om de volgorde te wijzigen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Voornaam, achternaam en e-mail zijn altijd verplicht. Sleep om de volgorde te wijzigen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Stuur sollicitaties naar', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Stuur sollicitaties naar', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php $email_mode = get_option('multiposter_form_email_mode', 'api_only'); ?>
                         <?php $has_api_key = (bool) get_option('multiposter_api_key'); ?>
                         <select name="multiposter_form_email_mode">
-                            <option value="api_only" <?php selected($email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'multiposter'); ?></option>
-                            <option value="email_only" <?php selected($email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'multiposter'); ?></option>
-                            <option value="both" <?php selected($email_mode, 'both'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Multiposter en e-mail', 'multiposter'); ?></option>
+                            <option value="api_only" <?php selected($email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="email_only" <?php selected($email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="both" <?php selected($email_mode, 'both'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Multiposter en e-mail', 'jobit-vacancies-for-multiposter'); ?></option>
                         </select>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Notificatie e-mailadres', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Notificatie e-mailadres', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="email" name="multiposter_form_notification_email" value="<?php echo esc_attr(get_option('multiposter_form_notification_email', '')); ?>" />
-                        <em><?php esc_html_e('Leeg = e-mail van vacature contactpersoon', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Leeg = e-mail van vacature contactpersoon', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -788,13 +807,13 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top" id="multiposter-registration-fields-row">
-                    <th scope="row"><?php esc_html_e('Formuliervelden', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Formuliervelden', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php
                         $default_reg_fields = array(
-                            array('id' => 'tel', 'label' => __('Telefoon', 'multiposter'), 'enabled' => 1, 'required' => 0),
-                            array('id' => 'motivation', 'label' => __('Motivatie', 'multiposter'), 'enabled' => 1, 'required' => 0),
-                            array('id' => 'resume', 'label' => __('CV upload', 'multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'tel', 'label' => __('Telefoon', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'motivation', 'label' => __('Motivatie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+                            array('id' => 'resume', 'label' => __('CV upload', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
                         );
                         $reg_fields = get_option('multiposter_registration_form_fields', $default_reg_fields);
                         if (!is_array($reg_fields) || !isset($reg_fields[0]['id'])) {
@@ -813,31 +832,31 @@ function multiposter_settings_callback() {
                                 </label>
                                 <label style="margin-left:10px;">
                                     <input type="checkbox" name="multiposter_registration_form_fields[<?php echo (int) $i; ?>][required]" value="1" <?php checked(!empty($field['required']), true); ?>>
-                                    <?php esc_html_e('Verplicht', 'multiposter'); ?>
+                                    <?php esc_html_e('Verplicht', 'jobit-vacancies-for-multiposter'); ?>
                                 </label>
                             </li>
                         <?php endforeach; ?>
                         </ul>
-                        <em><?php esc_html_e('Voornaam, achternaam en e-mail zijn altijd verplicht. Sleep om de volgorde te wijzigen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Voornaam, achternaam en e-mail zijn altijd verplicht. Sleep om de volgorde te wijzigen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Stuur inschrijvingen naar', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Stuur inschrijvingen naar', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <?php $reg_email_mode = get_option('multiposter_registration_email_mode', 'api_only'); ?>
                         <?php $has_api_key = (bool) get_option('multiposter_api_key'); ?>
                         <select name="multiposter_registration_email_mode">
-                            <option value="api_only" <?php selected($reg_email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'multiposter'); ?></option>
-                            <option value="email_only" <?php selected($reg_email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'multiposter'); ?></option>
-                            <option value="both" <?php selected($reg_email_mode, 'both'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Multiposter en e-mail', 'multiposter'); ?></option>
+                            <option value="api_only" <?php selected($reg_email_mode, 'api_only'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Alleen Multiposter', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="email_only" <?php selected($reg_email_mode, 'email_only'); ?>><?php esc_html_e('Alleen e-mail', 'jobit-vacancies-for-multiposter'); ?></option>
+                            <option value="both" <?php selected($reg_email_mode, 'both'); ?> <?php disabled(!$has_api_key); ?>><?php esc_html_e('Multiposter en e-mail', 'jobit-vacancies-for-multiposter'); ?></option>
                         </select>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Notificatie e-mailadres', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Notificatie e-mailadres', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="email" name="multiposter_registration_notification_email" value="<?php echo esc_attr(get_option('multiposter_registration_notification_email', '')); ?>" />
-                        <em><?php esc_html_e('Leeg = admin e-mailadres', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Leeg = admin e-mailadres', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -848,36 +867,36 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Titel template (vacature)', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Titel template (vacature)', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_seo_single_title" value="<?php echo esc_attr(get_option('multiposter_seo_single_title', '{title} - {city} | {site_name}')); ?>" style="width:100%;" />
-                        <em><?php esc_html_e('Variabelen: {title}, {city}, {company}, {hours}, {salary}, {site_name}, {short_description}', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Variabelen: {title}, {city}, {company}, {hours}, {salary}, {site_name}, {short_description}', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Meta beschrijving (vacature)', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Meta beschrijving (vacature)', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_seo_single_desc" value="<?php echo esc_attr(get_option('multiposter_seo_single_desc', '{short_description}')); ?>" style="width:100%;" />
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Titel template (archief)', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Titel template (archief)', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_seo_archive_title" value="<?php echo esc_attr(get_option('multiposter_seo_archive_title', '')); ?>" style="width:100%;" />
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Meta beschrijving (archief)', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Meta beschrijving (archief)', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_seo_archive_desc" value="<?php echo esc_attr(get_option('multiposter_seo_archive_desc', '')); ?>" style="width:100%;" />
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Open Graph tags', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Open Graph tags', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="hidden" name="multiposter_og_enabled" value="0" />
                         <input type="checkbox" name="multiposter_og_enabled" value="1" <?php checked(get_option('multiposter_og_enabled', 1), 1); ?> />
-                        <em><?php esc_html_e('Voeg OG/Twitter meta tags toe aan vacature pagina\'s', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Voeg OG/Twitter meta tags toe aan vacature pagina\'s', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -888,10 +907,10 @@ function multiposter_settings_callback() {
             <table class="form-table">
 
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Afbeelding conversie', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Afbeelding conversie', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
                         <input type="text" name="multiposter_image_conversion" value="<?php echo esc_attr(get_option('multiposter_image_conversion', '')); ?>" <?php disabled(!get_option('multiposter_api_key')); ?> />
-                        <em><?php esc_html_e('Vul een conversienaam in om die versie te gebruiken. Zorg ervoor dat je de conversie ingesteld hebt bij de Beeldbank instellingen.', 'multiposter'); ?></em>
+                        <em><?php esc_html_e('Vul een conversienaam in om die versie te gebruiken. Zorg ervoor dat je de conversie ingesteld hebt bij de Beeldbank instellingen.', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
 
@@ -903,40 +922,40 @@ function multiposter_settings_callback() {
 
                 <tr valign="top">
                     <th colspan="2" style="text-align: left;">
-                        <h2 style="margin: 0;"><?php esc_html_e('Shortcodes', 'multiposter'); ?></h2>
+                        <h2 style="margin: 0;"><?php esc_html_e('Shortcodes', 'jobit-vacancies-for-multiposter'); ?></h2>
                     </th>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Archive pagina shortcode', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Archive pagina shortcode', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
-                        <input type="text" value="[jobs_archive]" disabled/>
-                        <em><?php esc_html_e('Gebruik deze shortcode om een lijst met vacatures te tonen', 'multiposter'); ?></em>
+                        <input type="text" value="[multiposter_archive]" disabled/>
+                        <em><?php esc_html_e('Gebruik deze shortcode om een lijst met vacatures te tonen', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
-                    <th scope="row"><?php esc_html_e('Single pagina shortcode', 'multiposter'); ?></th>
+                    <th scope="row"><?php esc_html_e('Single pagina shortcode', 'jobit-vacancies-for-multiposter'); ?></th>
                     <td>
-                        <input type="text" value="[job_single]" disabled/>
-                        <em><?php esc_html_e('Gebruik deze shortcode om een enkele vacature te tonen', 'multiposter'); ?></em>
+                        <input type="text" value="[multiposter_single]" disabled/>
+                        <em><?php esc_html_e('Gebruik deze shortcode om een enkele vacature te tonen', 'jobit-vacancies-for-multiposter'); ?></em>
                     </td>
                 </tr>
                 <tr valign="top">
                     <th colspan="2" style="text-align: left;">
-                        <h2 style="margin: 0;"><?php esc_html_e('Gutenberg Blocks', 'multiposter'); ?></h2>
+                        <h2 style="margin: 0;"><?php esc_html_e('Gutenberg Blocks', 'jobit-vacancies-for-multiposter'); ?></h2>
                     </th>
                 </tr>
                 <tr valign="top">
                     <td colspan="2">
                         <ul style="list-style:disc;padding-left:20px;">
-                            <li><strong>multiposter/vacancy-archive</strong> - <?php esc_html_e('Vacature archief met filters', 'multiposter'); ?></li>
-                            <li><strong>multiposter/latest-vacancies</strong> - <?php esc_html_e('Laatste vacatures (grid/lijst)', 'multiposter'); ?></li>
-                            <li><strong>multiposter/single-vacancy</strong> - <?php esc_html_e('Enkele vacature op ID', 'multiposter'); ?></li>
-                            <li><strong>multiposter/vacancy-search</strong> - <?php esc_html_e('Vacature zoekbalk', 'multiposter'); ?></li>
-                            <li><strong>multiposter/application-form</strong> - <?php esc_html_e('Sollicitatieformulier', 'multiposter'); ?></li>
-                            <li><strong>multiposter/registration-form</strong> - <?php esc_html_e('Inschrijfformulier', 'multiposter'); ?></li>
-                            <li><strong>multiposter/related-vacancies</strong> - <?php esc_html_e('Gerelateerde vacatures', 'multiposter'); ?></li>
-                            <li><strong>multiposter/share-buttons</strong> - <?php esc_html_e('Deelknoppen', 'multiposter'); ?></li>
-                            <li><strong>multiposter/vacancy-images</strong> - <?php esc_html_e('Vacature afbeeldingen grid', 'multiposter'); ?></li>
+                            <li><strong>multiposter/vacancy-archive</strong> - <?php esc_html_e('Vacature archief met filters', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/latest-vacancies</strong> - <?php esc_html_e('Laatste vacatures (grid/lijst)', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/single-vacancy</strong> - <?php esc_html_e('Enkele vacature op ID', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/vacancy-search</strong> - <?php esc_html_e('Vacature zoekbalk', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/application-form</strong> - <?php esc_html_e('Sollicitatieformulier', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/registration-form</strong> - <?php esc_html_e('Inschrijfformulier', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/related-vacancies</strong> - <?php esc_html_e('Gerelateerde vacatures', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/share-buttons</strong> - <?php esc_html_e('Deelknoppen', 'jobit-vacancies-for-multiposter'); ?></li>
+                            <li><strong>multiposter/vacancy-images</strong> - <?php esc_html_e('Vacature afbeeldingen grid', 'jobit-vacancies-for-multiposter'); ?></li>
                         </ul>
                     </td>
                 </tr>
@@ -945,11 +964,11 @@ function multiposter_settings_callback() {
             </div>
 
             <?php if ($active_tab !== 'reference'): ?>
-                <?php submit_button(__('Instellingen opslaan', 'multiposter')); ?>
+                <?php submit_button(__('Instellingen opslaan', 'jobit-vacancies-for-multiposter')); ?>
             <?php endif; ?>
 
             <?php if ($active_tab === 'general' && get_option('multiposter_api_key')): ?>
-                <button type="button" class="button button-secondary" id="feachjobsnow"><?php esc_html_e('Vacatures nu ophalen', 'multiposter'); ?></button>
+                <button type="button" class="button button-secondary" id="feachjobsnow"><?php esc_html_e('Vacatures nu ophalen', 'jobit-vacancies-for-multiposter'); ?></button>
                 <div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="<?php echo esc_url(plugins_url('assets/img/loading.gif', __FILE__)); ?>"/></div> </div>
             <?php endif; ?>
 
@@ -1083,7 +1102,7 @@ function multiposter_custom_cron_schedule($schedules) {
     $interval_seconds = $interval_minutes * 60;
     $schedules['multiposter_custom_interval'] = array(
         'interval' => $interval_seconds,
-        'display'  => __('Multiposter Custom Interval', 'multiposter')
+        'display'  => __('Multiposter Custom Interval', 'jobit-vacancies-for-multiposter')
     );
     return $schedules;
 }
@@ -1136,7 +1155,7 @@ function multiposter_fetch_api($current_page) {
         }
 
         // translators: %d is the HTTP status code.
-        $error_msg = sprintf(__('API returned HTTP %d', 'multiposter'), $status_code);
+        $error_msg = sprintf(__('API returned HTTP %d', 'jobit-vacancies-for-multiposter'), $status_code);
         update_option('multiposter_last_sync', array(
             'time' => current_time('mysql'),
             'status' => 'error',
@@ -1195,7 +1214,7 @@ function multiposter_sync_callback() {
         'time' => current_time('mysql'),
         'status' => 'success',
         // translators: %d is the number of synced vacancies.
-        'message' => sprintf(__('%d vacatures gesynchroniseerd', 'multiposter'), $sync_count),
+        'message' => sprintf(__('%d vacatures gesynchroniseerd', 'jobit-vacancies-for-multiposter'), $sync_count),
         'count' => $sync_count,
         'duration' => $duration,
     ));
@@ -1324,7 +1343,7 @@ function multiposter_insert_job($job) {
 
     // Check if job post already exists by 'jobit_id'
     $existing_posts = get_posts([
-        'post_type'   => 'vacatures',
+        'post_type'   => 'multiposter_vacancy',
         'meta_key'    => 'jobit_id',
         'meta_value'  => $job['id'],
         'numberposts' => 1
@@ -1345,7 +1364,7 @@ function multiposter_insert_job($job) {
             'post_title'   => $title,
             'post_content' => $full_text,
             'post_excerpt' => $description,
-            'post_type'    => 'vacatures',
+            'post_type'    => 'multiposter_vacancy',
             'post_status'  => 'publish'
         ];
         $post_id = wp_insert_post($post_data);
@@ -1392,23 +1411,23 @@ function multiposter_insert_job($job) {
                 update_post_meta($post_id, 'salary_numeric_max', max($nums));
             }
         } 
-        $city_term = term_exists($city, 'cities');
+        $city_term = term_exists($city, 'multiposter_city');
         if (!$city_term) {
-            $city_term = wp_insert_term($city, 'cities');
+            $city_term = wp_insert_term($city, 'multiposter_city');
         }
         // Assign the city to the job post
         if (!is_wp_error($city_term)) {
             $city_term_id = is_array($city_term) ? $city_term['term_id'] : $city_term;
-            wp_set_post_terms($post_id, $city_term_id, 'cities');
+            wp_set_post_terms($post_id, $city_term_id, 'multiposter_city');
         }
 
-        $position_term = term_exists($position, 'position');
+        $position_term = term_exists($position, 'multiposter_position');
         if (!$position_term) {
-            $position_term = wp_insert_term($position, 'position');
+            $position_term = wp_insert_term($position, 'multiposter_position');
         }
         if (!is_wp_error($position_term)) {
             $position_term_id = is_array($position_term) ? $position_term['term_id'] : $position_term;
-            wp_set_post_terms($post_id, $position_term_id, 'position');
+            wp_set_post_terms($post_id, $position_term_id, 'multiposter_position');
         }
 
         // Feature 4: Attach vacancy images (multi-image support)
@@ -1472,9 +1491,9 @@ add_action('admin_menu', 'multiposter_import_log_page');
 function multiposter_import_log_page() {
     if (!get_option('multiposter_api_key')) return;
     add_submenu_page(
-        'edit.php?post_type=vacatures',
-        __('Import Log', 'multiposter'),
-        __('Import Log', 'multiposter'),
+        'edit.php?post_type=multiposter_vacancy',
+        __('Import Log', 'jobit-vacancies-for-multiposter'),
+        __('Import Log', 'jobit-vacancies-for-multiposter'),
         'manage_options',
         'multiposter_import_log',
         'multiposter_import_log_callback'
@@ -1495,17 +1514,17 @@ function multiposter_import_log_callback() {
     $logs = $wpdb->get_results($wpdb->prepare("SELECT * FROM `$safe_table` ORDER BY sync_time DESC LIMIT %d OFFSET %d", $per_page, $offset));
     $total_pages = ceil($total / $per_page);
 
-    echo '<div class="wrap"><h1 style="display:inline-block;">' . esc_html__('Import Log', 'multiposter') . '</h1>';
+    echo '<div class="wrap"><h1 style="display:inline-block;">' . esc_html__('Import Log', 'jobit-vacancies-for-multiposter') . '</h1>';
     if (get_option('multiposter_api_key')) {
-        echo ' <button class="button button-secondary" id="feachjobsnow" style="margin-left:10px;vertical-align:middle;">' . esc_html__('Vacatures nu ophalen', 'multiposter') . '</button>';
+        echo ' <button class="button button-secondary" id="feachjobsnow" style="margin-left:10px;vertical-align:middle;">' . esc_html__('Vacatures nu ophalen', 'jobit-vacancies-for-multiposter') . '</button>';
         echo '<div id="full-screen-loading" style="display: none;"> <div class="loading-spinner"><img src="' . esc_url(plugins_url('assets/img/loading.gif', __FILE__)) . '"/></div> </div>';
     }
     echo '<table class="widefat fixed striped"><thead><tr>';
-    echo '<th>' . esc_html__('Datum', 'multiposter') . '</th>';
-    echo '<th>' . esc_html__('Gesynchroniseerd', 'multiposter') . '</th>';
-    echo '<th>' . esc_html__('Verwijderd', 'multiposter') . '</th>';
-    echo '<th>' . esc_html__('Duur (s)', 'multiposter') . '</th>';
-    echo '<th>' . esc_html__('Fouten', 'multiposter') . '</th>';
+    echo '<th>' . esc_html__('Datum', 'jobit-vacancies-for-multiposter') . '</th>';
+    echo '<th>' . esc_html__('Gesynchroniseerd', 'jobit-vacancies-for-multiposter') . '</th>';
+    echo '<th>' . esc_html__('Verwijderd', 'jobit-vacancies-for-multiposter') . '</th>';
+    echo '<th>' . esc_html__('Duur (s)', 'jobit-vacancies-for-multiposter') . '</th>';
+    echo '<th>' . esc_html__('Fouten', 'jobit-vacancies-for-multiposter') . '</th>';
     echo '</tr></thead><tbody>';
 
     if ($logs) {
@@ -1519,7 +1538,7 @@ function multiposter_import_log_callback() {
             echo '</tr>';
         }
     } else {
-        echo '<tr><td colspan="5">' . esc_html__('Geen logs gevonden.', 'multiposter') . '</td></tr>';
+        echo '<tr><td colspan="5">' . esc_html__('Geen logs gevonden.', 'jobit-vacancies-for-multiposter') . '</td></tr>';
     }
 
     echo '</tbody></table>';
@@ -1560,7 +1579,7 @@ function multiposter_update_expired_jobs() {
             }
 
             $query = new WP_Query(array(
-                'post_type' => 'vacatures',
+                'post_type' => 'multiposter_vacancy',
                 'posts_per_page' => -1,
             ));
             if ($query->have_posts()) {
@@ -1597,7 +1616,8 @@ add_action('wp_ajax_multiposter_import_jobs_action', 'multiposter_ajax_import_jo
 
 
 
-add_shortcode( 'jobs_archive', 'multiposter_shortcode_archive' );
+add_shortcode( 'multiposter_archive', 'multiposter_shortcode_archive' );
+add_shortcode( 'jobs_archive', 'multiposter_shortcode_archive' ); // legacy alias — kept for backward compatibility with existing user content
 function multiposter_shortcode_archive( $atts ) {
     ob_start();
     include_once('template/archive-jobs.php');
@@ -1607,7 +1627,7 @@ function multiposter_shortcode_archive( $atts ) {
 
 add_filter('template_include', 'multiposter_custom_archive_template');
 function multiposter_custom_archive_template($template) {
-    if (is_post_type_archive('vacatures')) { // Replace 'jobs' with your post type name
+    if (is_post_type_archive('multiposter_vacancy')) { // Replace 'jobs' with your post type name
         $plugin_template = plugin_dir_path(__FILE__) . 'template/archive-jobs.php';
         if (file_exists($plugin_template)) {
             return $plugin_template;
@@ -1620,19 +1640,19 @@ function multiposter_custom_archive_template($template) {
 
 function multiposter_register_taxonomies() {
     $labels = array(
-        'name'              => _x( 'Plaatsen', 'taxonomy general name', 'multiposter' ),
-        'singular_name'     => _x( 'Plaats', 'taxonomy singular name', 'multiposter' ),
-        'search_items'      => __( 'Zoek plaats', 'multiposter' ),
-        'all_items'         => __( 'Alle plaatsen', 'multiposter' ),
-        'parent_item'       => __( 'Hoofd plaatsen', 'multiposter' ),
-        'parent_item_colon' => __( 'Hoofd plaatsen:', 'multiposter' ),
-        'edit_item'         => __( 'Bewerk plaats', 'multiposter' ),
-        'update_item'       => __( 'Plaats opslaan', 'multiposter' ),
-        'add_new_item'      => __( 'Plaats toevoegen', 'multiposter' ),
-        'new_item_name'     => __( 'Nieuwe plaats naam', 'multiposter' ),
-        'menu_name'         => __( 'Plaatsen', 'multiposter' ),
+        'name'              => _x( 'Plaatsen', 'taxonomy general name', 'jobit-vacancies-for-multiposter'),
+        'singular_name'     => _x( 'Plaats', 'taxonomy singular name', 'jobit-vacancies-for-multiposter'),
+        'search_items'      => __( 'Zoek plaats', 'jobit-vacancies-for-multiposter'),
+        'all_items'         => __( 'Alle plaatsen', 'jobit-vacancies-for-multiposter'),
+        'parent_item'       => __( 'Hoofd plaatsen', 'jobit-vacancies-for-multiposter'),
+        'parent_item_colon' => __( 'Hoofd plaatsen:', 'jobit-vacancies-for-multiposter'),
+        'edit_item'         => __( 'Bewerk plaats', 'jobit-vacancies-for-multiposter'),
+        'update_item'       => __( 'Plaats opslaan', 'jobit-vacancies-for-multiposter'),
+        'add_new_item'      => __( 'Plaats toevoegen', 'jobit-vacancies-for-multiposter'),
+        'new_item_name'     => __( 'Nieuwe plaats naam', 'jobit-vacancies-for-multiposter'),
+        'menu_name'         => __( 'Plaatsen', 'jobit-vacancies-for-multiposter'),
     );
-    register_taxonomy( 'cities', 'vacatures', array(
+    register_taxonomy('multiposter_city', 'multiposter_vacancy', array(
         'hierarchical'      => true,
         'labels'            => $labels,
         'show_ui'           => true,
@@ -1643,19 +1663,19 @@ function multiposter_register_taxonomies() {
     ));
 
     $labels = array(
-        'name'              => _x( 'Functies', 'taxonomy general name', 'multiposter' ),
-        'singular_name'     => _x( 'Functie', 'taxonomy singular name', 'multiposter' ),
-        'search_items'      => __( 'Zoek functie', 'multiposter' ),
-        'all_items'         => __( 'Alle functies', 'multiposter' ),
-        'parent_item'       => __( 'Hoofd functie', 'multiposter' ),
-        'parent_item_colon' => __( 'Hoofd functie:', 'multiposter' ),
-        'edit_item'         => __( 'Bewerk functie', 'multiposter' ),
-        'update_item'       => __( 'Functie opslaan', 'multiposter' ),
-        'add_new_item'      => __( 'Functie toevoegen', 'multiposter' ),
-        'new_item_name'     => __( 'Nieuwe functie naam', 'multiposter' ),
-        'menu_name'         => __( 'Functies', 'multiposter' ),
+        'name'              => _x( 'Functies', 'taxonomy general name', 'jobit-vacancies-for-multiposter'),
+        'singular_name'     => _x( 'Functie', 'taxonomy singular name', 'jobit-vacancies-for-multiposter'),
+        'search_items'      => __( 'Zoek functie', 'jobit-vacancies-for-multiposter'),
+        'all_items'         => __( 'Alle functies', 'jobit-vacancies-for-multiposter'),
+        'parent_item'       => __( 'Hoofd functie', 'jobit-vacancies-for-multiposter'),
+        'parent_item_colon' => __( 'Hoofd functie:', 'jobit-vacancies-for-multiposter'),
+        'edit_item'         => __( 'Bewerk functie', 'jobit-vacancies-for-multiposter'),
+        'update_item'       => __( 'Functie opslaan', 'jobit-vacancies-for-multiposter'),
+        'add_new_item'      => __( 'Functie toevoegen', 'jobit-vacancies-for-multiposter'),
+        'new_item_name'     => __( 'Nieuwe functie naam', 'jobit-vacancies-for-multiposter'),
+        'menu_name'         => __( 'Functies', 'jobit-vacancies-for-multiposter'),
     );
-    register_taxonomy( 'position', 'vacatures', array(
+    register_taxonomy('multiposter_position', 'multiposter_vacancy', array(
         'hierarchical'      => true,
         'labels'            => $labels,
         'show_ui'           => true,
@@ -1719,7 +1739,7 @@ function multiposter_render_job_card($job_id, $show_favorites = true) {
         $html .= '<span class="multiposter-card__meta-item">' . multiposter_icon('euro') . ' ' . esc_html($salary) . '</span>';
     }
     if ($show_favorites) {
-        $html .= '<span class="multiposter-card__meta-item"><button type="button" class="multiposter-favorite-btn" data-id="' . esc_attr($job_id) . '" aria-label="' . esc_attr__('Favoriet', 'multiposter') . '">' . multiposter_icon('heart') . '</button></span>';
+        $html .= '<span class="multiposter-card__meta-item"><button type="button" class="multiposter-favorite-btn" data-id="' . esc_attr($job_id) . '" aria-label="' . esc_attr__('Favoriet', 'jobit-vacancies-for-multiposter') . '">' . multiposter_icon('heart') . '</button></span>';
     }
     $html .= '</div>';
 
@@ -1738,7 +1758,7 @@ function multiposter_render_archive_page_ssr($per_page, $show_favorites) {
     }
 
     $query = new WP_Query(array(
-        'post_type' => 'vacatures',
+        'post_type' => 'multiposter_vacancy',
         'posts_per_page' => $per_page,
         'paged' => 1,
         'post_status' => 'publish',
@@ -1752,7 +1772,7 @@ function multiposter_render_archive_page_ssr($per_page, $show_favorites) {
         }
         wp_reset_postdata();
     } else {
-        $html = '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'multiposter') . '</p>';
+        $html = '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
     }
 
     if ($cache_duration > 0) {
@@ -1763,7 +1783,7 @@ function multiposter_render_archive_page_ssr($per_page, $show_favorites) {
 
 function multiposter_render_archive_pagination_ssr($per_page) {
     $query = new WP_Query(array(
-        'post_type' => 'vacatures',
+        'post_type' => 'multiposter_vacancy',
         'posts_per_page' => $per_page,
         'paged' => 1,
         'post_status' => 'publish',
@@ -1774,8 +1794,8 @@ function multiposter_render_archive_pagination_ssr($per_page) {
     $pagination = paginate_links(array(
         'total' => $query->max_num_pages,
         'current' => 1,
-        'prev_text' => __('&laquo; Vorige', 'multiposter'),
-        'next_text' => __('Volgende &raquo;', 'multiposter'),
+        'prev_text' => __('&laquo; Vorige', 'jobit-vacancies-for-multiposter'),
+        'next_text' => __('Volgende &raquo;', 'jobit-vacancies-for-multiposter'),
         'type' => 'array',
     ));
 
@@ -1813,7 +1833,7 @@ function multiposter_ajax_archive() {
     }
 
     $args = array(
-        'post_type'      => 'vacatures',
+        'post_type'      => 'multiposter_vacancy',
         'posts_per_page' => $posts_per_page,
         'paged'          => $paged,
         'post_status'    => 'publish',
@@ -1822,7 +1842,7 @@ function multiposter_ajax_archive() {
     $tax_queries = array();
     if (!empty($selected_cities)) {
         $tax_queries[] = array(
-            'taxonomy' => 'cities',
+            'taxonomy' => 'multiposter_city',
             'field'    => 'term_id',
             'terms'    => $selected_cities,
         );
@@ -1830,7 +1850,7 @@ function multiposter_ajax_archive() {
 
     if (!empty($selected_postions)) {
         $tax_queries[] = array(
-            'taxonomy' => 'position',
+            'taxonomy' => 'multiposter_position',
             'field'    => 'term_id',
             'terms'    => $selected_postions,
         );
@@ -1901,8 +1921,8 @@ function multiposter_ajax_archive() {
         $pagination = paginate_links(array(
             'total'     => $jobs_query->max_num_pages,
             'current'   => $paged,
-            'prev_text' => __('&laquo; Vorige', 'multiposter'),
-            'next_text' => __('Volgende &raquo;', 'multiposter'),
+            'prev_text' => __('&laquo; Vorige', 'jobit-vacancies-for-multiposter'),
+            'next_text' => __('Volgende &raquo;', 'jobit-vacancies-for-multiposter'),
             'type'      => 'array' // Output as an array for easy manipulation
         ));
         
@@ -1921,7 +1941,7 @@ function multiposter_ajax_archive() {
     } else {
         $html = ob_get_clean();
         $result = wp_json_encode(array(
-            'html' => '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'multiposter') . '</p>',
+            'html' => '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'jobit-vacancies-for-multiposter') . '</p>',
             'pagination' => ''
         ));
     }
@@ -1941,7 +1961,7 @@ add_action('wp_ajax_nopriv_multiposter_change_per_page', 'multiposter_ajax_archi
 
 
 function multiposter_single_content($content) {
-    if (is_singular('vacatures')) {
+    if (is_singular('multiposter_vacancy')) {
         $job_id = get_the_ID();
         $city = get_post_meta($job_id, 'city', true);
         $salary = get_post_meta($job_id, 'salary', true);
@@ -1963,7 +1983,7 @@ function multiposter_single_content($content) {
         $custom_content .= '<div class="multiposter-detail__header">';
         $custom_content .= '<h3 class="multiposter-detail__title">' . esc_html(get_the_title($job_id)) . '</h3>';
         if (get_option('multiposter_favorites_enabled', 1)) {
-            $custom_content .= '<button type="button" class="multiposter-favorite-btn multiposter-favorite-btn--detail" data-id="' . esc_attr($job_id) . '" aria-label="' . esc_attr__('Favoriet', 'multiposter') . '">' . multiposter_icon('heart') . '</button>';
+            $custom_content .= '<button type="button" class="multiposter-favorite-btn multiposter-favorite-btn--detail" data-id="' . esc_attr($job_id) . '" aria-label="' . esc_attr__('Favoriet', 'jobit-vacancies-for-multiposter') . '">' . multiposter_icon('heart') . '</button>';
         }
         $custom_content .= '</div>';
 
@@ -2018,13 +2038,13 @@ function multiposter_single_content($content) {
 
         if ($show_form) {
             $custom_content .= '<section>';
-            $custom_content .= '<h3>' . esc_html__('Solliciteren', 'multiposter') . '</h3>';
+            $custom_content .= '<h3>' . esc_html__('Solliciteren', 'jobit-vacancies-for-multiposter') . '</h3>';
             $custom_content .= multiposter_render_application_form($job_id);
             $custom_content .= '</section>';
         }
 
         $custom_content .= '<section>';
-        $custom_content .= '<h3>' . esc_html__('Vragen over deze vacature?', 'multiposter') . '</h3>';
+        $custom_content .= '<h3>' . esc_html__('Vragen over deze vacature?', 'jobit-vacancies-for-multiposter') . '</h3>';
         if (!empty($contact)) {
             $custom_content .= '<p>' . wp_kses_post($contact) . '</p>';
         }
@@ -2032,7 +2052,7 @@ function multiposter_single_content($content) {
             $custom_content .= '<p><a href="tel:' . esc_attr($office_phone) . '">' . multiposter_icon('phone') . ' ' . esc_html($office_phone) . '</a></p>';
         }
         if (!empty($email)) {
-            $custom_content .= '<p><a href="mailto:' . esc_attr($email) . '">' . multiposter_icon('mail') . ' ' . esc_html__('Stuur ons een mail', 'multiposter') . '</a></p>';
+            $custom_content .= '<p><a href="mailto:' . esc_attr($email) . '">' . multiposter_icon('mail') . ' ' . esc_html__('Stuur ons een mail', 'jobit-vacancies-for-multiposter') . '</a></p>';
         }
         $custom_content .= '</section>';
 
@@ -2044,7 +2064,8 @@ function multiposter_single_content($content) {
     return $content;
 }
 add_filter('the_content', 'multiposter_single_content');
-add_shortcode('job_single', 'multiposter_single_content');
+add_shortcode('multiposter_single', 'multiposter_single_content');
+add_shortcode('job_single', 'multiposter_single_content'); // legacy alias — kept for backward compatibility with existing user content
 
 
 
@@ -2054,7 +2075,7 @@ add_shortcode('job_single', 'multiposter_single_content');
 
 
 function multiposter_job_posting_schema() {
-    if (is_singular('vacatures')) { // Check if viewing a single 'vacatures' post
+    if (is_singular('multiposter_vacancy')) { // Check if viewing a single 'multiposter_vacancy' post
         $job_id = get_the_ID();
         $title = get_the_title($job_id);
         $city = get_post_meta($job_id, 'city', true);
@@ -2170,25 +2191,25 @@ function multiposter_get_related_vacancies($post_id, $count = 3) {
 
         switch ($criterion['id']) {
             case 'position':
-                $terms = wp_get_post_terms($post_id, 'position', array('fields' => 'ids'));
+                $terms = wp_get_post_terms($post_id, 'multiposter_position', array('fields' => 'ids'));
                 if (!is_wp_error($terms) && !empty($terms)) {
                     $new_posts = get_posts(array(
-                        'post_type' => 'vacatures',
+                        'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
-                        'tax_query' => array(array('taxonomy' => 'position', 'field' => 'term_id', 'terms' => $terms)),
+                        'tax_query' => array(array('taxonomy' => 'multiposter_position', 'field' => 'term_id', 'terms' => $terms)),
                     ));
                 }
                 break;
 
             case 'city':
-                $terms = wp_get_post_terms($post_id, 'cities', array('fields' => 'ids'));
+                $terms = wp_get_post_terms($post_id, 'multiposter_city', array('fields' => 'ids'));
                 if (!is_wp_error($terms) && !empty($terms)) {
                     $new_posts = get_posts(array(
-                        'post_type' => 'vacatures',
+                        'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
-                        'tax_query' => array(array('taxonomy' => 'cities', 'field' => 'term_id', 'terms' => $terms)),
+                        'tax_query' => array(array('taxonomy' => 'multiposter_city', 'field' => 'term_id', 'terms' => $terms)),
                     ));
                 }
                 break;
@@ -2197,7 +2218,7 @@ function multiposter_get_related_vacancies($post_id, $count = 3) {
                 $meta_value = get_post_meta($post_id, 'employment', true);
                 if (!empty($meta_value)) {
                     $new_posts = get_posts(array(
-                        'post_type' => 'vacatures',
+                        'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'meta_query' => array(array('key' => 'employment', 'value' => $meta_value)),
@@ -2209,7 +2230,7 @@ function multiposter_get_related_vacancies($post_id, $count = 3) {
                 $meta_value = get_post_meta($post_id, 'career_level', true);
                 if (!empty($meta_value)) {
                     $new_posts = get_posts(array(
-                        'post_type' => 'vacatures',
+                        'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'meta_query' => array(array('key' => 'career_level', 'value' => $meta_value)),
@@ -2219,7 +2240,7 @@ function multiposter_get_related_vacancies($post_id, $count = 3) {
 
             case 'random':
                 $new_posts = get_posts(array(
-                    'post_type' => 'vacatures',
+                    'post_type' => 'multiposter_vacancy',
                     'posts_per_page' => $remaining,
                     'post__not_in' => $exclude,
                     'orderby' => 'rand',
@@ -2241,7 +2262,7 @@ function multiposter_render_related_vacancies($post_id, $count = 3) {
     if (empty($related)) return '';
 
     $html = '<div class="multiposter-related-vacancies">';
-    $html .= '<h3>' . esc_html__('Gerelateerde vacatures', 'multiposter') . '</h3>';
+    $html .= '<h3>' . esc_html__('Gerelateerde vacatures', 'jobit-vacancies-for-multiposter') . '</h3>';
     $html .= '<div class="multiposter-related-grid">';
     foreach ($related as $post) {
         $html .= multiposter_render_job_card($post->ID, false);
@@ -2334,7 +2355,7 @@ function multiposter_render_share_buttons($post_id) {
     );
 
     $html = '<div class="multiposter-share-buttons">';
-    $html .= '<span class="multiposter-share-label">' . esc_html__('Delen:', 'multiposter') . '</span>';
+    $html .= '<span class="multiposter-share-label">' . esc_html__('Delen:', 'jobit-vacancies-for-multiposter') . '</span>';
 
     $allowed_svg = array(
         'svg'  => array('width' => array(), 'height' => array(), 'viewbox' => array(), 'fill' => array(), 'xmlns' => array()),
@@ -2362,9 +2383,9 @@ function multiposter_render_share_buttons($post_id) {
 function multiposter_render_application_form($post_id) {
     $multiposter_id = get_post_meta($post_id, 'jobit_id', true);
     $default_form_fields = array(
-        array('id' => 'tel', 'label' => __('Telefoon', 'multiposter'), 'enabled' => 1, 'required' => 0),
-        array('id' => 'motivation', 'label' => __('Motivatie', 'multiposter'), 'enabled' => 1, 'required' => 0),
-        array('id' => 'resume', 'label' => __('CV upload', 'multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'tel', 'label' => __('Telefoon', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'motivation', 'label' => __('Motivatie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'resume', 'label' => __('CV upload', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
     );
     $form_fields = get_option('multiposter_form_fields', $default_form_fields);
     if (!is_array($form_fields) || !isset($form_fields[0]['id'])) {
@@ -2381,13 +2402,13 @@ function multiposter_render_application_form($post_id) {
     $html .= '<div style="display:none;"><input type="text" name="multiposter_hp" value="" tabindex="-1" autocomplete="off"></div>';
 
     // Required fields
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Voornaam', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Voornaam', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="text" name="first_name" required></div>';
 
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Achternaam', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Achternaam', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="text" name="last_name" required></div>';
 
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('E-mail', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('E-mail', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="email" name="email" required></div>';
 
     // Optional fields in configured order
@@ -2398,23 +2419,23 @@ function multiposter_render_application_form($post_id) {
 
         switch ($field['id']) {
             case 'tel':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Telefoon', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Telefoon', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<input type="tel" name="tel"' . $req . '></div>';
                 break;
             case 'motivation':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Motivatie', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Motivatie', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<textarea name="motivation" rows="4"' . $req . '></textarea></div>';
                 break;
             case 'resume':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('CV uploaden', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('CV uploaden', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<input type="file" name="resume" accept=".pdf,.doc,.docx"' . $req . '>';
-                $html .= '<small>' . esc_html__('PDF, DOC of DOCX (max 5MB)', 'multiposter') . '</small></div>';
+                $html .= '<small>' . esc_html__('PDF, DOC of DOCX (max 5MB)', 'jobit-vacancies-for-multiposter') . '</small></div>';
                 break;
         }
     }
 
     $html .= '<div class="multiposter-form-message"></div>';
-    $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Versturen', 'multiposter') . '" data-loading="' . esc_attr__('Versturen...', 'multiposter') . '">' . esc_html__('Versturen', 'multiposter') . '</button>';
+    $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Versturen', 'jobit-vacancies-for-multiposter') . '" data-loading="' . esc_attr__('Versturen...', 'jobit-vacancies-for-multiposter') . '">' . esc_html__('Versturen', 'jobit-vacancies-for-multiposter') . '</button>';
     $html .= '</form>';
 
     return apply_filters('multiposter_application_form_html', $html, $post_id);
@@ -2429,7 +2450,7 @@ function multiposter_handle_application() {
 
     // Honeypot check
     if (!empty($_POST['multiposter_hp'])) {
-        wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'jobit-vacancies-for-multiposter')));
     }
 
     $first_name = sanitize_text_field(wp_unslash($_POST['first_name'] ?? ''));
@@ -2441,11 +2462,11 @@ function multiposter_handle_application() {
     $post_id = intval($_POST['post_id'] ?? 0);
 
     if (empty($first_name) || empty($last_name) || empty($email_addr)) {
-        wp_send_json_error(array('message' => __('Vul alle verplichte velden in.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Vul alle verplichte velden in.', 'jobit-vacancies-for-multiposter')));
     }
 
     if (!is_email($email_addr)) {
-        wp_send_json_error(array('message' => __('Ongeldig e-mailadres.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Ongeldig e-mailadres.', 'jobit-vacancies-for-multiposter')));
     }
 
     // Handle file upload
@@ -2455,10 +2476,10 @@ function multiposter_handle_application() {
         $allowed_exts = array('pdf', 'doc', 'docx');
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
         if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
-            wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'multiposter')));
+            wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'jobit-vacancies-for-multiposter')));
         }
         if ($file['size'] > 5 * 1024 * 1024) {
-            wp_send_json_error(array('message' => __('Bestand is te groot (max 5MB).', 'multiposter')));
+            wp_send_json_error(array('message' => __('Bestand is te groot (max 5MB).', 'jobit-vacancies-for-multiposter')));
         }
         $upload = wp_handle_upload($file, array('test_form' => false));
         if (isset($upload['error'])) {
@@ -2536,11 +2557,11 @@ function multiposter_handle_application() {
         }
         if (!empty($notification_email)) {
             // translators: %s is the vacancy title.
-            $subject = sprintf(__('Nieuwe sollicitatie: %s', 'multiposter'), get_the_title($post_id));
+            $subject = sprintf(__('Nieuwe sollicitatie: %s', 'jobit-vacancies-for-multiposter'), get_the_title($post_id));
             $message = sprintf("%s %s\n%s: %s\n%s: %s\n\n%s",
                 $first_name, $last_name,
-                __('E-mail', 'multiposter'), $email_addr,
-                __('Telefoon', 'multiposter'), $tel,
+                __('E-mail', 'jobit-vacancies-for-multiposter'), $email_addr,
+                __('Telefoon', 'jobit-vacancies-for-multiposter'), $tel,
                 $motivation
             );
             $attachments = !empty($resume_path) ? array($resume_path) : array();
@@ -2550,9 +2571,9 @@ function multiposter_handle_application() {
 
     if ($api_success || $email_mode === 'email_only') {
         do_action('multiposter_application_submitted', $post_id, $email_addr);
-        wp_send_json_success(array('message' => __('Je sollicitatie is succesvol verzonden!', 'multiposter')));
+        wp_send_json_success(array('message' => __('Je sollicitatie is succesvol verzonden!', 'jobit-vacancies-for-multiposter')));
     } else {
-        wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'jobit-vacancies-for-multiposter')));
     }
 }
 
@@ -2561,9 +2582,9 @@ function multiposter_handle_application() {
 // =============================================
 function multiposter_render_registration_form() {
     $default_form_fields = array(
-        array('id' => 'tel', 'label' => __('Telefoon', 'multiposter'), 'enabled' => 1, 'required' => 0),
-        array('id' => 'motivation', 'label' => __('Motivatie', 'multiposter'), 'enabled' => 1, 'required' => 0),
-        array('id' => 'resume', 'label' => __('CV upload', 'multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'tel', 'label' => __('Telefoon', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'motivation', 'label' => __('Motivatie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
+        array('id' => 'resume', 'label' => __('CV upload', 'jobit-vacancies-for-multiposter'), 'enabled' => 1, 'required' => 0),
     );
     $form_fields = get_option('multiposter_registration_form_fields', $default_form_fields);
     if (!is_array($form_fields) || !isset($form_fields[0]['id'])) {
@@ -2577,13 +2598,13 @@ function multiposter_render_registration_form() {
     $html .= '<div style="display:none;"><input type="text" name="multiposter_hp" value="" tabindex="-1" autocomplete="off"></div>';
 
     // Required fields
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Voornaam', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Voornaam', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="text" name="first_name" required></div>';
 
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Achternaam', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Achternaam', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="text" name="last_name" required></div>';
 
-    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('E-mail', 'multiposter') . ' *</label>';
+    $html .= '<div class="multiposter-form-field"><label>' . esc_html__('E-mail', 'jobit-vacancies-for-multiposter') . ' *</label>';
     $html .= '<input type="email" name="email" required></div>';
 
     // Optional fields in configured order
@@ -2594,23 +2615,23 @@ function multiposter_render_registration_form() {
 
         switch ($field['id']) {
             case 'tel':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Telefoon', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Telefoon', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<input type="tel" name="tel"' . $req . '></div>';
                 break;
             case 'motivation':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Motivatie', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('Motivatie', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<textarea name="motivation" rows="4"' . $req . '></textarea></div>';
                 break;
             case 'resume':
-                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('CV uploaden', 'multiposter') . $star . '</label>';
+                $html .= '<div class="multiposter-form-field"><label>' . esc_html__('CV uploaden', 'jobit-vacancies-for-multiposter') . $star . '</label>';
                 $html .= '<input type="file" name="resume" accept=".pdf,.doc,.docx"' . $req . '>';
-                $html .= '<small>' . esc_html__('PDF, DOC of DOCX (max 5MB)', 'multiposter') . '</small></div>';
+                $html .= '<small>' . esc_html__('PDF, DOC of DOCX (max 5MB)', 'jobit-vacancies-for-multiposter') . '</small></div>';
                 break;
         }
     }
 
     $html .= '<div class="multiposter-form-message"></div>';
-    $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Registreren', 'multiposter') . '" data-loading="' . esc_attr__('Registreren...', 'multiposter') . '">' . esc_html__('Registreren', 'multiposter') . '</button>';
+    $html .= '<button type="submit" class="button blue2ghost" data-label="' . esc_attr__('Registreren', 'jobit-vacancies-for-multiposter') . '" data-loading="' . esc_attr__('Registreren...', 'jobit-vacancies-for-multiposter') . '">' . esc_html__('Registreren', 'jobit-vacancies-for-multiposter') . '</button>';
     $html .= '</form>';
 
     return apply_filters('multiposter_registration_form_html', $html);
@@ -2625,7 +2646,7 @@ function multiposter_handle_registration() {
 
     // Honeypot check
     if (!empty($_POST['multiposter_hp'])) {
-        wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Spam gedetecteerd.', 'jobit-vacancies-for-multiposter')));
     }
 
     $first_name = sanitize_text_field(wp_unslash($_POST['first_name'] ?? ''));
@@ -2635,11 +2656,11 @@ function multiposter_handle_registration() {
     $motivation = sanitize_textarea_field(wp_unslash($_POST['motivation'] ?? ''));
 
     if (empty($first_name) || empty($last_name) || empty($email_addr)) {
-        wp_send_json_error(array('message' => __('Vul alle verplichte velden in.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Vul alle verplichte velden in.', 'jobit-vacancies-for-multiposter')));
     }
 
     if (!is_email($email_addr)) {
-        wp_send_json_error(array('message' => __('Ongeldig e-mailadres.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Ongeldig e-mailadres.', 'jobit-vacancies-for-multiposter')));
     }
 
     // Handle file upload
@@ -2649,10 +2670,10 @@ function multiposter_handle_registration() {
         $allowed_exts = array('pdf', 'doc', 'docx');
         $filetype = wp_check_filetype_and_ext($file['tmp_name'], $file['name']);
         if (empty($filetype['ext']) || !in_array($filetype['ext'], $allowed_exts, true)) {
-            wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'multiposter')));
+            wp_send_json_error(array('message' => __('Alleen PDF, DOC of DOCX bestanden zijn toegestaan.', 'jobit-vacancies-for-multiposter')));
         }
         if ($file['size'] > 5 * 1024 * 1024) {
-            wp_send_json_error(array('message' => __('Bestand is te groot (max 5MB).', 'multiposter')));
+            wp_send_json_error(array('message' => __('Bestand is te groot (max 5MB).', 'jobit-vacancies-for-multiposter')));
         }
         $upload = wp_handle_upload($file, array('test_form' => false));
         if (isset($upload['error'])) {
@@ -2725,11 +2746,11 @@ function multiposter_handle_registration() {
             $notification_email = get_option('admin_email');
         }
         if (!empty($notification_email)) {
-            $subject = __('Nieuwe registratie', 'multiposter');
+            $subject = __('Nieuwe registratie', 'jobit-vacancies-for-multiposter');
             $message = sprintf("%s %s\n%s: %s\n%s: %s\n\n%s",
                 $first_name, $last_name,
-                __('E-mail', 'multiposter'), $email_addr,
-                __('Telefoon', 'multiposter'), $tel,
+                __('E-mail', 'jobit-vacancies-for-multiposter'), $email_addr,
+                __('Telefoon', 'jobit-vacancies-for-multiposter'), $tel,
                 $motivation
             );
             $attachments = !empty($resume_path) ? array($resume_path) : array();
@@ -2739,9 +2760,9 @@ function multiposter_handle_registration() {
 
     if ($api_success || $email_mode === 'email_only') {
         do_action('multiposter_registration_submitted', $email_addr);
-        wp_send_json_success(array('message' => __('Je registratie is succesvol verzonden!', 'multiposter')));
+        wp_send_json_success(array('message' => __('Je registratie is succesvol verzonden!', 'jobit-vacancies-for-multiposter')));
     } else {
-        wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'multiposter')));
+        wp_send_json_error(array('message' => __('Er is een fout opgetreden bij het verzenden. Probeer het later opnieuw.', 'jobit-vacancies-for-multiposter')));
     }
 }
 
@@ -2763,12 +2784,12 @@ function multiposter_seo_replace_placeholders($template, $post_id) {
 
 add_filter('document_title_parts', 'multiposter_seo_title');
 function multiposter_seo_title($title_parts) {
-    if (is_singular('vacatures')) {
+    if (is_singular('multiposter_vacancy')) {
         $template = get_option('multiposter_seo_single_title', '');
         if (!empty($template)) {
             $title_parts['title'] = multiposter_seo_replace_placeholders($template, get_the_ID());
         }
-    } elseif (is_post_type_archive('vacatures')) {
+    } elseif (is_post_type_archive('multiposter_vacancy')) {
         $template = get_option('multiposter_seo_archive_title', '');
         if (!empty($template)) {
             $title_parts['title'] = $template;
@@ -2779,13 +2800,13 @@ function multiposter_seo_title($title_parts) {
 
 add_action('wp_head', 'multiposter_seo_meta_description', 1);
 function multiposter_seo_meta_description() {
-    if (is_singular('vacatures')) {
+    if (is_singular('multiposter_vacancy')) {
         $template = get_option('multiposter_seo_single_desc', '');
         if (!empty($template)) {
             $desc = multiposter_seo_replace_placeholders($template, get_the_ID());
             echo '<meta name="description" content="' . esc_attr(wp_trim_words($desc, 30)) . '">' . "\n";
         }
-    } elseif (is_post_type_archive('vacatures')) {
+    } elseif (is_post_type_archive('multiposter_vacancy')) {
         $desc = get_option('multiposter_seo_archive_desc', '');
         if (!empty($desc)) {
             echo '<meta name="description" content="' . esc_attr($desc) . '">' . "\n";
@@ -2799,7 +2820,7 @@ function multiposter_seo_meta_description() {
 add_action('wp_head', 'multiposter_og_tags', 2);
 function multiposter_og_tags() {
     if (!get_option('multiposter_og_enabled', 1)) return;
-    if (!is_singular('vacatures')) return;
+    if (!is_singular('multiposter_vacancy')) return;
 
     $post_id = get_the_ID();
     $title = get_the_title($post_id);
@@ -2963,12 +2984,12 @@ function multiposter_block_latest_render($attributes) {
     $layout = isset($attributes['layout']) ? $attributes['layout'] : 'grid';
 
     $posts = get_posts(array(
-        'post_type' => 'vacatures',
+        'post_type' => 'multiposter_vacancy',
         'posts_per_page' => $count,
         'post_status' => 'publish',
     ));
 
-    if (empty($posts)) return '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'multiposter') . '</p>';
+    if (empty($posts)) return '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
 
     $class = $layout === 'grid' ? 'multiposter-latest-grid' : 'multiposter-latest-list';
     $html = '<div class="multiposter-latest-vacancies ' . esc_attr($class) . '">';
@@ -2981,10 +3002,10 @@ function multiposter_block_latest_render($attributes) {
 
 function multiposter_block_single_render($attributes) {
     $vacancy_id = isset($attributes['vacancyId']) ? intval($attributes['vacancyId']) : 0;
-    if (!$vacancy_id) return '<p>' . esc_html__('Selecteer een vacature.', 'multiposter') . '</p>';
+    if (!$vacancy_id) return '<p>' . esc_html__('Selecteer een vacature.', 'jobit-vacancies-for-multiposter') . '</p>';
 
     $post = get_post($vacancy_id);
-    if (!$post || $post->post_type !== 'vacatures') return '<p>' . esc_html__('Vacature niet gevonden.', 'multiposter') . '</p>';
+    if (!$post || $post->post_type !== 'multiposter_vacancy') return '<p>' . esc_html__('Vacature niet gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
 
     return multiposter_render_job_card($vacancy_id, false);
 }
@@ -2992,9 +3013,9 @@ function multiposter_block_single_render($attributes) {
 function multiposter_block_search_render($attributes) {
     ob_start();
     $default_filters = array(
-        array('id' => 'keyword', 'label' => __('Zoeken', 'multiposter'), 'enabled' => 1),
-        array('id' => 'position', 'label' => __('Functie', 'multiposter'), 'enabled' => 1),
-        array('id' => 'city', 'label' => __('Plaats', 'multiposter'), 'enabled' => 1),
+        array('id' => 'keyword', 'label' => __('Zoeken', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+        array('id' => 'position', 'label' => __('Functie', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
+        array('id' => 'city', 'label' => __('Plaats', 'jobit-vacancies-for-multiposter'), 'enabled' => 1),
     );
     $filters_config = get_option('multiposter_filters_config', $default_filters);
     if (!is_array($filters_config)) {
@@ -3006,9 +3027,9 @@ function multiposter_block_search_render($attributes) {
         <form action="<?php echo esc_url(home_url('/' . $vacancy_slug . '/')); ?>" method="get">
             <?php foreach ($filters_config as $filter):
                 if (empty($filter['enabled']) || $filter['id'] !== 'keyword') continue; ?>
-                <input type="text" name="s" placeholder="<?php esc_attr_e('Zoek vacatures...', 'multiposter'); ?>" class="multiposter-search-input">
+                <input type="text" name="s" placeholder="<?php esc_attr_e('Zoek vacatures...', 'jobit-vacancies-for-multiposter'); ?>" class="multiposter-search-input">
             <?php endforeach; ?>
-            <button type="submit" class="button blue2ghost"><?php esc_html_e('Zoeken', 'multiposter'); ?></button>
+            <button type="submit" class="button blue2ghost"><?php esc_html_e('Zoeken', 'jobit-vacancies-for-multiposter'); ?></button>
         </form>
     </div>
     <?php
@@ -3022,14 +3043,14 @@ function multiposter_resolve_vacancy_id($attributes) {
     }
     if (!$vacancy_id) return 0;
     $post = get_post($vacancy_id);
-    if (!$post || $post->post_type !== 'vacatures') return 0;
+    if (!$post || $post->post_type !== 'multiposter_vacancy') return 0;
     return $vacancy_id;
 }
 
 function multiposter_block_application_form_render($attributes) {
     $vacancy_id = multiposter_resolve_vacancy_id($attributes);
     if (!$vacancy_id) {
-        return '<p>' . esc_html__('Geen vacature gevonden.', 'multiposter') . '</p>';
+        return '<p>' . esc_html__('Geen vacature gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
     }
     return multiposter_render_application_form($vacancy_id);
 }
@@ -3037,16 +3058,16 @@ function multiposter_block_application_form_render($attributes) {
 function multiposter_block_images_render($attributes) {
     $vacancy_id = multiposter_resolve_vacancy_id($attributes);
     if (!$vacancy_id) {
-        return '<p>' . esc_html__('Geen vacature gevonden.', 'multiposter') . '</p>';
+        return '<p>' . esc_html__('Geen vacature gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
     }
     $html = multiposter_render_image_gallery($vacancy_id);
-    return $html ?: '<p>' . esc_html__('Geen afbeeldingen gevonden.', 'multiposter') . '</p>';
+    return $html ?: '<p>' . esc_html__('Geen afbeeldingen gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
 }
 
 function multiposter_block_share_render($attributes) {
     $vacancy_id = multiposter_resolve_vacancy_id($attributes);
     if (!$vacancy_id) {
-        return '<p>' . esc_html__('Geen vacature gevonden.', 'multiposter') . '</p>';
+        return '<p>' . esc_html__('Geen vacature gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
     }
     return multiposter_render_share_buttons($vacancy_id);
 }
@@ -3054,7 +3075,7 @@ function multiposter_block_share_render($attributes) {
 function multiposter_block_related_render($attributes) {
     $vacancy_id = multiposter_resolve_vacancy_id($attributes);
     if (!$vacancy_id) {
-        return '<p>' . esc_html__('Geen vacature gevonden.', 'multiposter') . '</p>';
+        return '<p>' . esc_html__('Geen vacature gevonden.', 'jobit-vacancies-for-multiposter') . '</p>';
     }
     $count = isset($attributes['count']) ? intval($attributes['count']) : 3;
     return multiposter_render_related_vacancies($vacancy_id, $count);

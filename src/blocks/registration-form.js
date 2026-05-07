@@ -3,7 +3,7 @@ import { useBlockProps } from '@wordpress/block-editor';
 import { __ } from '@wordpress/i18n';
 
 registerBlockType('multiposter/registration-form', {
-    title: __('Registration Form', 'multiposter'),
+    title: __('Registration Form', 'jobit-vacancies-for-multiposter'),
     icon: 'id',
     category: 'widgets',
     edit: function Edit() {
@@ -11,8 +11,8 @@ registerBlockType('multiposter/registration-form', {
         return (
             <div {...blockProps}>
                 <div style={{ padding: '20px', background: '#f0f0f0', textAlign: 'center' }}>
-                    <strong>{__('Registration Form', 'multiposter')}</strong>
-                    <p>{__('Displays a registration form (no vacancy required).', 'multiposter')}</p>
+                    <strong>{__('Registration Form', 'jobit-vacancies-for-multiposter')}</strong>
+                    <p>{__('Displays a registration form (no vacancy required).', 'jobit-vacancies-for-multiposter')}</p>
                 </div>
             </div>
         );
