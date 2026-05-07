@@ -1,4 +1,4 @@
-=== Multiposter ===
+=== Jobit Vacancies for Multiposter ===
 Contributors: multiposternl
 Tags: vacancies, jobs, recruitment, job board, vacatures
 Requires at least: 5.8

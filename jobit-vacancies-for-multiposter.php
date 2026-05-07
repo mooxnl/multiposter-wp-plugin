@@ -1,11 +1,12 @@
 <?php
 /**
- * Plugin Name:       Multiposter
+ * Plugin Name:       Jobit Vacancies for Multiposter
  * Version:           2.2
  * Text Domain:       jobit-vacancies-for-multiposter
  * Domain Path:       /languages
  * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
  * Author:            Multiposter
+ * Author URI:        https://multiposter.nl
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.txt
  */
@@ -39,8 +40,11 @@ function multiposter_maybe_migrate_v22_identifiers() {
     if (!current_user_can('manage_options')) return;
 
     global $wpdb;
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time v2.2 identifier migration; guarded by 'multiposter_migration_v22' option.
     $wpdb->update($wpdb->posts, array('post_type' => 'multiposter_vacancy'), array('post_type' => 'vacatures'));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time v2.2 identifier migration.
     $wpdb->update($wpdb->term_taxonomy, array('taxonomy' => 'multiposter_city'), array('taxonomy' => 'cities'));
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time v2.2 identifier migration.
     $wpdb->update($wpdb->term_taxonomy, array('taxonomy' => 'multiposter_position'), array('taxonomy' => 'position'));
 
     flush_rewrite_rules();
@@ -1342,12 +1346,18 @@ function multiposter_insert_job($job) {
     $position = $job['position'];
 
     // Check if job post already exists by 'jobit_id'
+    // phpcs:disable WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Required to look up an existing post by its external unique 'jobit_id' during API sync.
     $existing_posts = get_posts([
         'post_type'   => 'multiposter_vacancy',
-        'meta_key'    => 'jobit_id',
-        'meta_value'  => $job['id'],
-        'numberposts' => 1
+        'meta_query'  => [
+            [
+                'key'   => 'jobit_id',
+                'value' => $job['id'],
+            ],
+        ],
+        'numberposts' => 1,
     ]);
+    // phpcs:enable WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 
     if(isset($existing_posts[0]->ID)){
         $post_id = $existing_posts[0]->ID;
@@ -1856,6 +1866,7 @@ function multiposter_ajax_archive() {
         );
     }
     if (!empty($tax_queries)) {
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Faceted filter for job archive; results cached upstream via multiposter_archive_* transient.
         $args['tax_query'] = array(
             'relation' => 'AND',
             ...$tax_queries,
@@ -1888,6 +1899,7 @@ function multiposter_ajax_archive() {
         if (count($meta_query) > 1) {
             $meta_query['relation'] = 'AND';
         }
+        // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Salary range filter; results cached upstream via multiposter_archive_* transient.
         $args['meta_query'] = $meta_query;
     }
 
@@ -2193,58 +2205,68 @@ function multiposter_get_related_vacancies($post_id, $count = 3) {
             case 'position':
                 $terms = wp_get_post_terms($post_id, 'multiposter_position', array('fields' => 'ids'));
                 if (!is_wp_error($terms) && !empty($terms)) {
+                    // phpcs:disable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Related-jobs query: must exclude current/already-collected posts and match by taxonomy.
                     $new_posts = get_posts(array(
                         'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'tax_query' => array(array('taxonomy' => 'multiposter_position', 'field' => 'term_id', 'terms' => $terms)),
                     ));
+                    // phpcs:enable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                 }
                 break;
 
             case 'city':
                 $terms = wp_get_post_terms($post_id, 'multiposter_city', array('fields' => 'ids'));
                 if (!is_wp_error($terms) && !empty($terms)) {
+                    // phpcs:disable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_tax_query -- Related-jobs query: must exclude current/already-collected posts and match by taxonomy.
                     $new_posts = get_posts(array(
                         'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'tax_query' => array(array('taxonomy' => 'multiposter_city', 'field' => 'term_id', 'terms' => $terms)),
                     ));
+                    // phpcs:enable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                 }
                 break;
 
             case 'employment':
                 $meta_value = get_post_meta($post_id, 'employment', true);
                 if (!empty($meta_value)) {
+                    // phpcs:disable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Related-jobs query: must exclude current/already-collected posts and match by meta key.
                     $new_posts = get_posts(array(
                         'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'meta_query' => array(array('key' => 'employment', 'value' => $meta_value)),
                     ));
+                    // phpcs:enable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_meta_query
                 }
                 break;
 
             case 'career_level':
                 $meta_value = get_post_meta($post_id, 'career_level', true);
                 if (!empty($meta_value)) {
+                    // phpcs:disable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Related-jobs query: must exclude current/already-collected posts and match by meta key.
                     $new_posts = get_posts(array(
                         'post_type' => 'multiposter_vacancy',
                         'posts_per_page' => $remaining,
                         'post__not_in' => $exclude,
                         'meta_query' => array(array('key' => 'career_level', 'value' => $meta_value)),
                     ));
+                    // phpcs:enable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in, WordPress.DB.SlowDBQuery.slow_db_query_meta_query
                 }
                 break;
 
             case 'random':
+                // phpcs:disable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in -- Related-jobs random fallback: must exclude current/already-collected posts.
                 $new_posts = get_posts(array(
                     'post_type' => 'multiposter_vacancy',
                     'posts_per_page' => $remaining,
                     'post__not_in' => $exclude,
                     'orderby' => 'rand',
                 ));
+                // phpcs:enable WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn_post__not_in
                 break;
         }
 
