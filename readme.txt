@@ -3,7 +3,7 @@ Contributors: multiposternl
 Tags: vacancies, jobs, recruitment, job board, vacatures
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 2.2
+Stable tag: 2.3
 Requires PHP: 7.4
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -102,9 +102,14 @@ Applications are sent via email to the configured notification address, or to th
 
 == Changelog ==
 
+= 2.3 =
+* Security: escape forward slashes in the JobPosting JSON-LD output so vacancy fields containing `</script>` cannot break out of the schema `<script>` tag
+* Switched the archive AJAX handler to `wp_send_json` and now caches the response as a structured array instead of a raw JSON string
+* Removed the unprefixed `[jobs_archive]` and `[job_single]` shortcode aliases — please update existing pages to use `[multiposter_archive]` and `[multiposter_single]`
+
 = 2.2 =
 * Renamed text domain to match the WordPress.org plugin slug
-* Prefixed custom post type, taxonomies and shortcodes with `multiposter_` to avoid collisions; legacy `[jobs_archive]` and `[job_single]` shortcodes still work
+* Prefixed custom post type, taxonomies and shortcodes with `multiposter_` to avoid collisions
 * Added one-time migration that updates existing posts and terms on first admin load after upgrade — no manual action required
 * Hardened API-key sanitization, escaped vacancy title in the `the_content` filter callback, moved the inline admin loading-overlay style into the enqueued stylesheet
 * Documented the candidate registration endpoint and the public source repository in the readme

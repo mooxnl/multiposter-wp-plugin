@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       Jobit Vacancies for Multiposter
- * Version:           2.2
+ * Version:           2.3
  * Text Domain:       jobit-vacancies-for-multiposter
  * Domain Path:       /languages
  * Description:       Publiceer jouw vacatures vanuit Multiposter op je eigen WordPress website.
@@ -106,7 +106,6 @@ function multiposter_should_enqueue() {
                 if (has_block($block, $post)) return true;
             }
             if (has_shortcode($post->post_content, 'multiposter_archive') || has_shortcode($post->post_content, 'multiposter_single')) return true;
-            if (has_shortcode($post->post_content, 'jobs_archive') || has_shortcode($post->post_content, 'job_single')) return true;
         }
     }
     return false;
@@ -1627,7 +1626,6 @@ add_action('wp_ajax_multiposter_import_jobs_action', 'multiposter_ajax_import_jo
 
 
 add_shortcode( 'multiposter_archive', 'multiposter_shortcode_archive' );
-add_shortcode( 'jobs_archive', 'multiposter_shortcode_archive' ); // legacy alias — kept for backward compatibility with existing user content
 function multiposter_shortcode_archive( $atts ) {
     ob_start();
     include_once('template/archive-jobs.php');
@@ -1835,10 +1833,9 @@ function multiposter_ajax_archive() {
     $cache_key = 'multiposter_archive_' . md5(serialize(array($posts_per_page, $paged, $selected_cities, $selected_postions, $keyword, $salary_min, $salary_max, $favorites_enabled)));
     if ($cache_duration > 0) {
         $cached = get_transient($cache_key);
-        if ($cached !== false) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Cached JSON output from our own render functions.
-            echo $cached;
-            wp_die();
+        // is_array() guard discards stale string-encoded payloads from older plugin versions.
+        if (is_array($cached)) {
+            wp_send_json($cached);
         }
     }
 
@@ -1939,34 +1936,32 @@ function multiposter_ajax_archive() {
         ));
         
         // Transform pagination links to AJAX-friendly links
+        $pagination_html = '';
         if ($pagination) {
-            $pagination_html = '';
             foreach ($pagination as $page_link) {
                 $pagination_html .= str_replace('<a ', '<a data-page="1" ', $page_link);
             }
         }
-        
-        $result = wp_json_encode(array(
+
+        $payload = array(
             'html'       => $html,
             'pagination' => $pagination_html,
-        ));
+        );
     } else {
         $html = ob_get_clean();
-        $result = wp_json_encode(array(
-            'html' => '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'jobit-vacancies-for-multiposter') . '</p>',
-            'pagination' => ''
-        ));
+        $payload = array(
+            'html'       => '<p>' . esc_html__('Er zijn geen vacatures gevonden.', 'jobit-vacancies-for-multiposter') . '</p>',
+            'pagination' => '',
+        );
     }
 
     // Feature 16: Store in cache
     if ($cache_duration > 0) {
-        set_transient($cache_key, $result, $cache_duration);
+        set_transient($cache_key, $payload, $cache_duration);
     }
 
-    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded response with pre-escaped HTML.
-    echo $result;
     wp_reset_postdata();
-    wp_die();
+    wp_send_json($payload);
 }
 add_action('wp_ajax_multiposter_change_per_page', 'multiposter_ajax_archive');
 add_action('wp_ajax_nopriv_multiposter_change_per_page', 'multiposter_ajax_archive');
@@ -2077,7 +2072,6 @@ function multiposter_single_content($content) {
 }
 add_filter('the_content', 'multiposter_single_content');
 add_shortcode('multiposter_single', 'multiposter_single_content');
-add_shortcode('job_single', 'multiposter_single_content'); // legacy alias — kept for backward compatibility with existing user content
 
 
 
@@ -2168,7 +2162,7 @@ function multiposter_job_posting_schema() {
 
         ?>
         <script type="application/ld+json">
-            <?php echo wp_json_encode($schema_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT); ?>
+            <?php echo wp_json_encode($schema_data, JSON_UNESCAPED_UNICODE); ?>
         </script>
         <?php
     }
